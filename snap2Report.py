@@ -14,6 +14,14 @@ def get_all_files_in_directory(root_dir):
     
     return files_list
 
+def readable_filesize(size):
+    """Convert bytes to human-readable format."""
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size < 1024:
+            return f"{size:.2f} {unit}"
+        size /= 1024
+
+
 def count_pdf_pages(pdf_file):
     reader = PdfReader(pdf_file)
     number_of_pages = len(reader.pages)
@@ -26,6 +34,9 @@ def extract_file_details(files_list):
         filename = os.path.basename(file)
         filetype = filename.split('.')[-1] if '.' in filename else 'Unknown'
         
+        file_size_bytes = os.path.getsize(file)
+        file_size_kb = file_size_bytes / 1024
+
         # If file type is PDF, get the number of pages
         if filetype.lower() == 'pdf':
             try:
@@ -35,18 +46,18 @@ def extract_file_details(files_list):
                 pdf_pages = "Error"
         else:
             pdf_pages = "N/A"
-        print(filename, filetype, file, pdf_pages)
-        data.append((filename, filetype, file, pdf_pages))  # Add page count to the data
+        print(filename, filetype, file, pdf_pages, file_size_kb, readable_filesize(file_size_bytes))
+        data.append((filename, filetype, file, pdf_pages, file_size_kb, readable_filesize(file_size_bytes)))
     return data
 
 def save_to_excel(data, output_filename):
     """Save data to Excel."""
-    df = pd.DataFrame(data, columns=["File Name", "File Type", "Full Path", "PDF Pages"])
+    df = pd.DataFrame(data, columns=["File Name", "File Type", "Full Path", "PDF Pages", "Size (KB)", "Size (Readable)"])
     df.index += 1  # so index starts from 1 instead of 0
     df.to_excel(output_filename, index_label="Index", engine='openpyxl')
 
 if __name__ == "__main__":
-    directory_to_scan = "E:\\"  # Replace with your directory path
+    directory_to_scan = "E:\\nmm data\\NMM-2\\Aug-2020\\ramtek-1_04-08-2020(3)"  # Replace with your directory path
     output_filename = "output.xlsx"  # Replace with desired output name
 
     # Start the timer
