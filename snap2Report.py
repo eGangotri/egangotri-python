@@ -57,7 +57,7 @@ def save_to_excel(data, output_filename):
     df.to_excel(output_filename, index_label="Index", engine='openpyxl')
 
 if __name__ == "__main__":
-    directory_to_scan = "E:\\nmm data\\NMM-2\\Aug-2020\\ramtek-1_04-08-2020(3)"  # Replace with your directory path
+    directory_to_scan = "E:\\"  # Replace with your directory path
     output_filename = "output.xlsx"  # Replace with desired output name
 
     # Start the timer
