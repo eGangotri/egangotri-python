@@ -28,3 +28,5 @@ def processData(src_dir,dest_dir,pdfNames):
 
 if __name__ == "__main__":
     processData(src_dir,dest_dir,_pdfNames)
+
+# python moveFiles/moveFiles.py
