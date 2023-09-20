@@ -1,5 +1,5 @@
 pdfNames = """
-1.pdf,2.pdf,3.pdf
+1.txt,2.txt
 """
 pdfNames2 = """
 Aryavart By Vaidya Indra Deva 1963 Khamriyapul - Vaidya Indra Dev.pdf,
