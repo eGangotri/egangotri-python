@@ -1,47 +1,59 @@
-pdfNames = """
+pdfNames2 = """
 1.txt,2.txt
 """
-pdfNames2 = """
-Aryavart By Vaidya Indra Deva 1963 Khamriyapul - Vaidya Indra Dev.pdf,
-Ashtadhyayi By Brahma Datta  1964 Amritsar - Ramlal Kapoor Trust.pdf,
-Ashtadhyayi By Panini 1890 Prayag - Shiva Dayal Sinha.pdf,
-Ashtadhyayi Shukla Yajurveda Prathishakyayoh Mata Vimarsha By Vijay Pal 1983 Haryana - Vijay Pal.pdf,
-Ashtadhyayi Vol-3 By Pandita Brahma Datta - Ramlal Kapoor Trust.pdf,
-Ashtadhyayiya Bhashyam Vol-1 By dayananda Saraswati 1984 Ajmer - Vaidik yantralay.pdf,
-Atha Vedanga Prakasa Vol-8 By Dayananda Saraswati 1960 Ajmer - Vaidik yantralay.pdf,
-Atharva Veda Khanda-20 By Kshema Karan Das Trivedi 1920 Prayag - Shri Raja Rajeshwar.pdf,
-Atharva Veda Samhita With The Commentary of Shankaracharya Vol-2 Edited By Shankar Pandurang 1895 Bombay - Government Central Book Depot.pdf,
-Chromopathy By Dwaraka Nath Narang 1983 New Delhi - Ishwar Das Narang.pdf,
-Fundamental Mysticism In Vedic Worship Or The Mysteries Of Vedic Daily Prayers By Abyudayananda Saraswati 1983 Benaras - Vedodaya Foundation.pdf,
-Kaya Kalpa Yoga By Narendra Nath Shastri 1938 Lucknow - Saraswati Pustak Bhandar.pdf,
-Maha Bhashyam Ch-4 By Patanjali 1889 Benaras - Kripa Ram Sharma.pdf,
-Maha Bhashyam Ch-6 By Patanjali 1889 Benaras - Kripa Ram Sharma.pdf,
-Maha Bhashyam Ch-7 By Patanjali 1889 Benaras - Kripa Ram Sharma.pdf,
-Maha Bhashyam Navahnikam Unidentified Due To Missing Pages - Panini Kanya.pdf,
-Maha Bhashyam Vol-3 With The Commentary Of Kayyata 1889 Benaras - Kripa Ram Sharma.pdf,
-Maha Bhashyam Vol-7 By Sudyumna Acharya 2017 Haryana - Ramlal Kapoor Trust.pdf,
-Maha Bhashyam With The Commentary Of Kayyata Benaras - Kripa Ram Sharma.pdf,
-Nagiri Lipi By Braj Mohan 1968 Benaras - Shabdloka Prakashan.pdf,
-Nunakhar vale Baba Sammohanand By Satyavrat Shastri 2005 Benaras - Shyamala Prakashan.pdf,
-Paniniya Ashtakam Purvardham By Ganga Datta Shastri 1962 Jalandhar - Sat Dharma Pracharak Mandal.pdf,
-Ram Kaleva Benaras - Prithvinath Bhargav.pdf,
-Rigveda Anukramani With The Commentry Of Vijay Pal 1979 Sonipat - Yudhistar.pdf,
-Rigveda Vol-9 Edited By Vishwa Bandhu 1964 Hoshiarpur - Vishweshvaranand Vaidik Sansthan.pdf,
-Samaveda Shatakam Edited By Swami Achyutananda Saraswati Luthiyana - Shanti Ashram.pdf,
-Shri Ram Janma Bhumi Ka Rakta Ranjita Itihas 1998 Ayodhya - Puja Prakashan.pdf,
-Shukla Yajuh Pratishakhyam By Shrimati Indu Rastogi 1967 Benaras - Chaukhamba.pdf,
-Sona Aur Khoon Vol-1 By Acharya Chatursen 1957 Delhi - Rajpal And Sons.pdf,
-Vaidik Adhyatma Jyothi By Anubhavananda Saraswati 1969 New Delhi - Gyan Gyan.pdf,
-Vaidik Vigyan Aur Bharatiya Sanskriti By Giridhar Sharma Chaturvedi 1972 Patna - Bihar Rashtra Basha Parishad.pdf,
-Vaidika Karma Vidhi By Prakasavati Bugga Shastri 1990 New Delhi - Prakasavati Bugga Shastri.pdf,
-Varnochharana Shiksha By Dayananda Saraswati 1950 Ajmer - Vaidika Yantralay.pdf,
-Vayakarana Bhushana Sara By kounda Bhatta Edited By Pandit Taranatha 1872 Calcutta - Ganesha Press.pdf,
-Ved Sarvasva Vol-1 By Hari Prasad Vaidika Muni 1916 Delhi - Sat Dharma Pracharak Mandal.pdf,
-Veda Adhyayan Vol-1 By Ram Prasad 1995 Jwalapur - Shraddha Sahitya Prakashan.pdf,
-Vyakarana Maha Bhashya Of Patanjali Vol-2 Edited By F. Kielhorn 1965 Poona - Bhandarkar Oriental Research Institute.pdf,
-Vyakarana Maha Bhashyam Vol-2 Edited By Veda Vrat 1963 Rohtak - Haryana Sahitya sansthan.pdf,
-Vyakarana Maha Bhashyam Vol-2 Rohtak - Haryana Sahitya Sansthan.pdf,
-Vyakarana Maha Bhashyam with The Commentary Of Kayyata Vol-4 1963 Rohtak - Haryana Sahitya Sansthan.pdf,
-Vyakarana Mahabhashya With Kaiyatas Pradipa Vol-3 By Raghunath Kashinth Shastri 1937 Bombay - Nirnay Sagar Press.pdf,
-Yajurveda Uttarardha - Vajasaneya Samhita Benaras - Gaurish Press.pdf """
+pdfNames = """
+Life History and Philosophy of Gautama Buddha by Dr. Sarvapalli Radhakrishnan Translated by Rajeshwar Guru  Delhi 1981 - Rajpal and Sons.pdf
+,Aaijiak Newton by Omprakash Arya New Delhi 1961 - Pupils Publishing Dause Limited.pdf
+,Adyapi by Pt. Vasudev Dvivedi Shastri Ed. by Dr. Kapildev Pandeya Varanasi 2004 - Sarvabhauma Samskruta Prachar Sansthan.pdf
+,Ishwara-Siddhi by Jnaneshwarachary Gujurat 2012 - Vanaprasth Sadhak Ashrama.pdf
+,Mera Sankshipt Jeevan Parichay by Swami Satyapati Parivrajak Gujurat 1992 - Darshan Yog Mahavidyalay.pdf
+,Shikshaprad Prasang by Vaidik Mischenory Kamalesh Kumar Arya Agnihotri Gadhi Dham - Sri Chunnilal Bhai Rup Sea Bird Popet.pdf
+,Life History of Pt. Dharm Veer  Lekh Ram by Swami Shraddhanand Jalandhar 1963 - Adhisthata Sahitya Prakashan Vibhag.pdf
+,Bruhacchabdendu Shekhar (Part 3) of Nagesh Bhatta Ed. Dr. Sri Seeta Rama Shastri Varanasi 1998 - Dr.Harishchandra Mani Trpathi(1).pdf      
+,Vayyakarana Siddhanta Kaumudi of Bhattoji Deekshit with Tika of Bala Manorama and Hindi Traslation by Sri Gopaladatta Pandeya Varanasi 1988 - Chowkhamba Surabharati Prakashan(1).pdf
+,Sukharm by Vaidk Mischenory Kamalesh Kumar Arya Agnihotri Gandhi Dham - Sri Chunnilal Bhai Rupasibhai Popet.pdf
+,Amrutvani Sri Guruji.pdf
+,Krantikariyon ke 101 prerak Prasang by Sukhveer Sinh Dalal Delhi 2011 - Ankur Prakashan.pdf
+,Manavata Sandesh by Dr. Ramnarayan Mishra Allahabad 1992 - Subhadra Prakashan.pdf
+,Nahi Karni Chahiye Uttar Pradesh 1988 - Vedant Deshik Seva Sansthan.pdf
+,Sai Uvach Collections of Sri Sri Narayan Prem Sai Pravachan Gujurat - Ojasvi Prakashan.pdf
+,Saphal Jeevan by Shanti Devi Agnihotri Delhi 2007 - Darshan Kumar Agnihotri.pdf
+,Tattva-Bodh-Darshan by Tryambakeshwara Chaitanya Mujapharnagar 2014  - Satsang Bhavan Trust.pdf
+,Susamskari Santan by Vaidik Mishenoary Kamalesh Kumar Arya Agnihotri - Sri Chunnilal Bhai Rupasi Bhai Popet.pdf
+,Vedon Mein Rashtra Darshan by Dr. Shiva Acharya Shonitpuram 2005 - Samskruta Prasarini Sabha.pdf
+,Virjanand Ashram - Alm - 9.2 [ VHP 2 ] - Panini Kanya.pdf
+,At the Feet of the Master by Alcyone Madras 1960 - The Theosophical Publishing House.pdf
+,President Vilsan aur Samsariki Swadhinata by riyuta Sukhsampadit Roy Bhandari Ed. Pt. HariBhau Upadhyay Handor 1919  - Jeetmal Luniya.pdf  
+,Bharatiya Samsyayen Aur Unka Samadhan by Jagadeeshchandra Sariph, Prabhakar Bhavani Varanasi - Ashok Prakashan.pdf
+,Deva Sabha Ed. by Snatika-Priyamvada Shastri Varanasi 1983 - Panini Kanya Mahavidyalay.pdf
+,Samaj Bikar Raha Hai  by Purushottam Jhunjhunavala Calcutta - Sri Gopuram Ghanuka.pdf
+,Meenakshi Hindi, Angrezi Kosh(Dictionary) Ed. B. Mohan, B. N. Kapoor 1987 - Meenakshi Prakashan.pdf
+,Srautkosh Encyclopedia  with the Commentary in the Sanskrit and the English Section Vol 2 Part 2 by R. N. Dandekar Pune 1982  - Vaidika Samshodhana Mandal.pdf.pdf
+,'Chandragupt' ke Vishisht Sthalon ki Shastriya Vyakhya by Shailendra Thakkur Banares - Educational Book Sindicate.pdf
+,Striyo Alm 9.4 Vhp2 Panini.pdf
+,Striyo Alm 9.4 Vhp2 Panini (1).pdf
+,Dharma aur Uski Avashyakata by Jnanchand Arya Delhi 1935 - Sarvadarshik Arya Pratinihi Sabha.pdf
+,Jeevan Darshan A Monthly Magzine Vrindavan  Aug 197.pdf
+,Gagar Mein Sagar A Magzine Short Stories and Essays That May Lead you Darkness to Light Ed by Mumukshu Arya  Noyda - Arya Samaj.pdf        
+,Disha Bodh M. S. Golvalkar Nagpur  - Kendriya Prakashan.pdf
+,Jeevan Darshan A Monthly Magzine Vrindavan  Aug 1971.pdf
+,Mera Sapnon Ki Bath by M. K. Gandhi Ed. Siddharaj Dadda Varanasi 1969 - Mantri, Sarva Seva Sangh.pdf
+,Jeevana Sangharsh Life History of Sri Pt. Shiva Dayaluji Mareth Nivasi Ed. by Vidya Bhaskar Satyapal Shastri Merath - MIttal Merath.pdf    
+,Santan  Sadupadesh Sangrah (Missing Pages).pdf   
+,Tyag Vad by Swami Vidyanand Saraswati Panipat 1983 - Arsha Sahitya Prakashan.pdf
+,Vyavaharik Mano Vigyan (Missing Page).pdf        
+,Jeevan Darshan by Swami Ramdev Uttar Khand 2009 - Divya Prakashan.pdf
+,Nirogi Kaya by Ganpati Sinh Faridabad 1991 - Amrut Gurudev Education Society.pdf
+,Yam-Niyam by Yogiraj Sri Chandramohanji Maharaj Savayi - Sri Sddhi Gupha Prakashan.pdf
+,Yog Darshan In Hindi Translation Ed. by Swami Ramdevji Maharaj Haridwar 2005 - Divya Prakashan.pdf
+,Yog Rahasya by Sri Mahatma Narayan Swamiji Maharaj New Delhi 1989 - Sarvadarshik Ary Pratinidhi Sabha.pdf
+,Yog Shiksha by Acharya Yagnadev Kishan Nagar 2005  - Acharya Arogy Mandir Trust.pdf
+,Jeevan Drashan by Swami Ramdev 2009 Bahadarabad - Divya Prakashan.pdf
+,Yog Sadhana Evam Yog Chikitsa Rahasy by Swami Ramdev Haridwar - Divya Prakashan.pdf
+,Yog Sandarshika A Manual for Parents and Yoga Teachers by Acharya Balkrishna Haridwar 2009 - Divya Prakashan.pdf
+,Jeevan Darshan by Swami Ramdev Bahadarabad 2009 - Divya Prakashan.pdf
+,Nirogi Kaya by Ganapati Sinh Faridabad 1991 - Amrut Gurudev Education Society.pdf
+,Upavas se Labh Collected by Shri Vitthaldas Modi Gorakhpur 1993 - Arogya Mandir Prakashan.pdf
+,Prakrutika Vyanjan by Dr. Nand Kishore Sharma, Dr Savita Sharma New Delhi 1985- Natural Health Research Foundation.pdf
+ """
 

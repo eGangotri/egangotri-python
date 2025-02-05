@@ -13,13 +13,15 @@ def fileMover(src_dir, dest_dir, file_name):
             i += 1
         file_name = f"{file_name}_{i}"
 
-    # Move the file to the destination directory
-    shutil.move(os.path.join(src_dir, file_name),
+    if os.path.exists(os.path.join(src_dir, file_name)):
+        # Move the file to the destination directory
+        shutil.move(os.path.join(src_dir, file_name),
                 os.path.join(dest_dir, file_name))
+    else:
+        print(f"File {file_name} not found in {src_dir}")
 
-
-src_dir = 'C:\\tmp\\_freeze\\test'
-dest_dir = 'C:\\tmp\\_data\\test'
+src_dir = 'D:\\_Treasures67\\_data\\kangri'
+dest_dir = 'D:\\_Treasures67\\_data\\panini'
 
 def processData(src_dir, dest_dir, pdfNames=""):
     pdfNamesAsList = []
@@ -47,6 +49,8 @@ def processData(src_dir, dest_dir, pdfNames=""):
 
 
 if __name__ == "__main__":
-    processData(src_dir, dest_dir, "")
+    processData(src_dir, dest_dir, pdfNames)
+    #processData(src_dir, dest_dir, "")
+    
 
 # python moveFiles/moveFiles.py
