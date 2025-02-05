@@ -44,7 +44,9 @@ def process_pdfs_in_folder(input_folder, output_folder=None, firstN=10, lastN=10
         base_name, ext = os.path.splitext(file)
         new_file_name = f"{base_name}_{page_count:04d}{ext}"
         
-        output_subfolder = output_folder
+        # Maintain the original folder structure
+        relative_path = os.path.relpath(root, input_folder)
+        output_subfolder = os.path.join(output_folder, relative_path)
         os.makedirs(output_subfolder, exist_ok=True)
         output_pdf = os.path.join(output_subfolder, new_file_name)
         
