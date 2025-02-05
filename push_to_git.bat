@@ -4,7 +4,7 @@ set arg1=%1
 set arg1WithoutQuotes=%arg1:"='%
 set commit_msg="Optimizations at %timestamp% %arg1WithoutQuotes%"
 git status
-git add src/*
+git add *.py
 git add *.json
 git add *.bat
 git add *.yaml
