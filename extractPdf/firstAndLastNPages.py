@@ -23,6 +23,9 @@ def process_pdfs_in_folder(input_folder, output_folder=None, firstN=10, lastN=10
     if output_folder is None:
         output_folder = os.path.join(input_folder, REDUCED_FOLDER)
     
+    # Create the output folder if it doesn't exist
+    os.makedirs(output_folder, exist_ok=True)
+    
     pdf_files = []
     for root, dirs, files in os.walk(input_folder):
         # Ignore any subfolder named "reduced"
