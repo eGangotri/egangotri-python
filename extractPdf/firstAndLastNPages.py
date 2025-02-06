@@ -51,7 +51,7 @@ def process_pdfs_in_folder(input_folder, output_folder=None, firstN=10, lastN=10
         output_pdf = os.path.join(output_subfolder, new_file_name)
         
         extract_first_and_last_n_pages(input_pdf, output_pdf, firstN, lastN)
-        print(f"{count}/{total_files}) {file} reduced to {firstN + lastN} pages as {new_file_name}\n")
+        print(f"{count}/{total_files}) {file}\n")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract first and last N pages from PDFs in a folder.")
