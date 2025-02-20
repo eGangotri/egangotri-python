@@ -1,6 +1,8 @@
 import fitz  # PyMuPDF
 import os
 import argparse
+import json
+
 from fastapi import HTTPException
 
 REDUCED_FOLDER = 'reduced'

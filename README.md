@@ -8,7 +8,11 @@ pip install -r requirements.txt
 # after every new library imported
 pip freeze > requirements.txt
 # to run
-uvicorn src.main:app --host 0.0.0.0 --port 7000 --reload# My FastAPI App
+uvicorn src.main:app --host 0.0.0.0 --port 7000 --reload
+
+### for 30 min. timeout
+uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 1800
+# My FastAPI App
 
 This project is a FastAPI application designed to demonstrate the structure and functionality of a web application using FastAPI.
 
