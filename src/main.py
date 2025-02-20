@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from src.extractPdf.firstAndLastNPages import process_pdfs_in_folder
 from src.copyFiles import copy_all_pdfs
 from typing import Optional
-from src.cr2ToPdf.cr2Img2pdf import convert_cr2_folder_to_pdf
+from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
 
 class ExtractFromPdfRequest(BaseModel):
     input_folder: str
@@ -74,13 +74,13 @@ def copyOnlyPdfs(request: CopyPdfRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/cr2ToPdfs")
-def convertCr2ToPdfs(request: CR2ToPdfRequest):
+@app.post("/cr2ToJpg")
+def convertCr2ToJpgs(request: CR2ToPdfRequest):
     try:
         if not request.cr2_folder:
             raise HTTPException(
                 status_code=400, detail="cr2_folder is required")
-        cr2ToPdfRes = convert_cr2_folder_to_pdf(request.cr2_folder, request.output_pdf_path)
+        cr2ToPdfRes = convert_cr2_folder_to_jpg(request.cr2_folder, request.output_pdf_path)
         print(f"Cr2 Converted: {json.dumps(cr2ToPdfRes, indent=4)}")
         
         return {
