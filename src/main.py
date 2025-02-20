@@ -19,7 +19,7 @@ class CopyPdfRequest(BaseModel):
 
 class CR2ToPdfRequest(BaseModel):
     cr2_folder: str
-    output_pdf_path: str
+    output_jpg_path: str
 
 app = FastAPI()
 
@@ -80,7 +80,7 @@ def convertCr2ToJpgs(request: CR2ToPdfRequest):
         if not request.cr2_folder:
             raise HTTPException(
                 status_code=400, detail="cr2_folder is required")
-        cr2ToPdfRes = convert_cr2_folder_to_jpg(request.cr2_folder, request.output_pdf_path)
+        cr2ToPdfRes = convert_cr2_folder_to_jpg(request.cr2_folder, request.output_jpg_path)
         print(f"Cr2 Converted: {json.dumps(cr2ToPdfRes, indent=4)}")
         
         return {
