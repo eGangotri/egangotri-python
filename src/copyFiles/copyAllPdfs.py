@@ -45,12 +45,14 @@ def copy_all_pdfs(input_folder, output_folder=None):
     
     # Return the result as a JSON object
     result = {
+        "success": len(files_copied) == total_files_expected,
+        "time_taken": time_taken_str,
         "status": f"Copied {len(files_copied)}/{total_files_expected} pdfs from {input_folder} to {output_folder}",
+        "output_folder": output_folder,
         "files_copied_count": len(files_copied),
         "total_files_expected": total_files_expected,
         "counts_match": len(files_copied) == total_files_expected,
         "msgs": msgs,
-        "time_taken": time_taken_str
     }
     return result
 
