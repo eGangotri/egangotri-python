@@ -5,6 +5,7 @@ from src.extractPdf.firstAndLastNPages import process_pdfs_in_folder
 from src.copyFiles import copy_all_pdfs
 from typing import Optional
 from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
+from src.routes.folder_analysis import router as folder_analysis_router
 
 class ExtractFromPdfRequest(BaseModel):
     input_folder: str
@@ -22,6 +23,7 @@ class CR2ToPdfRequest(BaseModel):
     output_jpg_path: str
 
 app = FastAPI()
+app.include_router(folder_analysis_router, tags=["folder-analysis"])
 
 
 @app.get("/")
