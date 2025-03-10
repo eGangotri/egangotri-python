@@ -121,6 +121,9 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
                 error_msg = f"Error processing {img_path}: {str(e)}"
                 print(f"  ❌ {error_msg}")
                 result['error'] = error_msg
+                # Clean up any loaded images before returning
+                for img in images:
+                    img.close()
                 return result
     
     if not images:
@@ -128,12 +131,8 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
         return result
     
     try:
-       # print(f"  Found {len(images)} images to process")
-        
-        # Create the output directory if it doesn't exist
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
-        # Save images as PDF
         suffix = f"-{img_type}s" if img_type != ImageType.JPG else ""
         pdf_path = f"{output_path}{suffix}.pdf"
         
@@ -146,6 +145,11 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
             pdfbytes = img_doc.convert_to_pdf()
             pdf_doc = fitz.open("pdf", pdfbytes)
             doc.insert_pdf(pdf_doc)
+            # Close intermediate PDF documents
+            img_doc.close()
+            pdf_doc.close()
+            # Close the PIL image
+            img.close()
         
         doc.save(pdf_path)
         doc.close()
@@ -156,6 +160,11 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
         error_msg = f"Error creating PDF: {str(e)}"
         print(f"  ❌ {error_msg}")
         result['error'] = error_msg
+        # Clean up any remaining images and documents
+        for img in images:
+            img.close()
+        if 'doc' in locals():
+            doc.close()
     
     return result
 
