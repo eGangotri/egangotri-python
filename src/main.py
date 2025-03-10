@@ -6,6 +6,10 @@ from src.copyFiles import copy_all_pdfs
 from typing import Optional
 from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
 from src.routes.folder_analysis import router as folder_analysis_router
+from src.utils.print_logger import PrintLogger
+
+# Initialize print logging
+PrintLogger()
 
 class ExtractFromPdfRequest(BaseModel):
     input_folder: str
