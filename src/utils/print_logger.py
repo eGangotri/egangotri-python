@@ -45,15 +45,15 @@ class PrintLogger:
             
             def write(self, text):
                 if text.strip():  # Only log non-empty strings
-                    ascii_text = (text.strip()
-                        .replace('├', '+')
-                        .replace('└', '\\')
-                        .replace('─', '-'))
+                    text = (text.strip()
+                            .replace('\u251C', '+')  # Box drawings light vertical and right
+                            .replace('\u2514', '\\')  # Box drawings light up and right
+                            .replace('\u2500', '-'))  # Box drawings light horizontal
                     try:
-                        self.logger.info(ascii_text)
+                        self.logger.info(text)
                     except UnicodeEncodeError:
                         # If still getting encode errors, force encode to ASCII
-                        self.logger.info(ascii_text.encode('ascii', 'replace').decode())
+                        self.logger.info(text.encode('ascii', 'replace').decode())
                 self.original_stdout.write(text)
             
             def flush(self):

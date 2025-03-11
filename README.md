@@ -19,17 +19,16 @@ This project is a FastAPI application designed to demonstrate the structure and 
 ## Project Structure
 
 ```
-my-fastapi-app
-├── src
-│   ├── main.py               # Entry point of the FastAPI application
-│   ├── controllers           # Contains controller logic
-│   │   └── __init__.py
-│   ├── routes                # Defines the routes for the application
-│   │   └── __init__.py
-│   └── models                # Defines the data models used in the application
-│       └── __init__.py
-├── requirements.txt          # Lists the dependencies for the application
-└── README.md                 # Documentation for the project
++-- src
+|   +-- main.py               # Entry point of the FastAPI application
+|   +-- controllers           # Contains controller logic
+|   |   \-- __init__.py
+|   +-- routes                # Defines the routes for the application
+|   |   \-- __init__.py
+|   \-- models                # Defines the data models used in the application
+|       \-- __init__.py
++-- requirements.txt          # Lists the dependencies for the application
+\-- README.md                 # Documentation for the project
 ```
 
 ## Installation
