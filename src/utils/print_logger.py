@@ -27,7 +27,8 @@ class PrintLogger:
         handler = RotatingFileHandler(
             log_file,
             maxBytes=10 * 1024 * 1024,  # 10MB
-            backupCount=1
+            backupCount=1,
+            encoding='utf-8'
         )
         formatter = logging.Formatter('%(asctime)s - %(message)s')
         handler.setFormatter(formatter)
@@ -44,7 +45,15 @@ class PrintLogger:
             
             def write(self, text):
                 if text.strip():  # Only log non-empty strings
-                    self.logger.info(text.strip())
+                    ascii_text = (text.strip()
+                        .replace('├', '+')
+                        .replace('└', '\\')
+                        .replace('─', '-'))
+                    try:
+                        self.logger.info(ascii_text)
+                    except UnicodeEncodeError:
+                        # If still getting encode errors, force encode to ASCII
+                        self.logger.info(ascii_text.encode('ascii', 'replace').decode())
                 self.original_stdout.write(text)
             
             def flush(self):
