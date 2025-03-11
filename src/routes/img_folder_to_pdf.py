@@ -468,6 +468,12 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     
     try:
         print("\nScanning folders...")
+        
+        # Create destination folder if it doesn't exist
+        if request.dest_folder and not os.path.exists(request.dest_folder):
+            print(f"Creating destination folder: {request.dest_folder}")
+            os.makedirs(request.dest_folder)
+            
         # First count total processable folders
         total_folders = sum(1 for root, _, _ in os.walk(request.src_folder) 
                           if not os.path.basename(root).startswith('.') and 
@@ -486,12 +492,14 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                 current_folder += 1
                 report['total_folders'] += 1
                 
-                # Calculate relative path to maintain directory structure
-                rel_path = os.path.relpath(root, request.src_folder)
-                
-                # Create corresponding path in destination
+                # Determine output path
                 if request.dest_folder:
+                    rel_path = os.path.relpath(root, request.src_folder)
                     pdf_base_path = os.path.join(request.dest_folder, rel_path)
+                    # Create destination subfolder if needed
+                    if not os.path.exists(pdf_base_path):
+                        print(f"Processing folder ({current_folder}/{total_folders}): {rel_path}")
+                        os.makedirs(pdf_base_path)
                 else:
                     pdf_base_path = root
                     
