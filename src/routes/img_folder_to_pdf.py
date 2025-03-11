@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import psutil
 from enum import Enum
 from typing import List, Dict, Set, Optional
 from fastapi import APIRouter, HTTPException
@@ -454,6 +455,8 @@ def verfiyImgtoPdf_route(request: FolderAnalysisRequest):
 def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     """Process a folder and convert images to PDFs."""
     start_time = time.time()
+    process = psutil.Process()
+    initial_memory = process.memory_info().rss / 1024 / 1024  # MB
     
     # Initialize report
     report = {
@@ -469,7 +472,13 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
         'successful_images_count': 0,
         'time_taken_seconds': 0,
         'pdf_count_matches_folders': False,
-        'error_types': {}
+        'error_types': {},
+        'memory_stats': {
+            'initial_mb': initial_memory,
+            'peak_mb': initial_memory,
+            'final_mb': 0,
+            'net_change_mb': 0
+        }
     }
     
     try:
@@ -503,6 +512,11 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
             try:
                 if os.path.basename(root).startswith('.'):
                     continue
+                
+                # Track memory at start of folder processing
+                mem_before = process.memory_info().rss / 1024 / 1024
+                print(f"Memory for folder({current_folder}/{total_folders}): {mem_before:.1f}MB")
+                
                 # Check for images of the specified type
                 if not has_image_files(root, request.img_type):
                     continue
@@ -597,6 +611,15 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                 })
                 report['error_count'] += 1
                 continue
+        
+        # Track memory after folder processing
+        mem_after = process.memory_info().rss / 1024 / 1024
+        mem_diff = mem_after - mem_before
+        if abs(mem_diff) > 1:  # Only show significant changes (>1MB)
+            print(f"Memory change for folder({current_folder}/{total_folders}): {mem_diff:+.1f}MB")
+        
+        # Update peak memory
+        report['memory_stats']['peak_mb'] = max(report['memory_stats']['peak_mb'], mem_after)
     
     except Exception as e:
         error_msg = f"Critical error during folder processing: {str(e)}"
@@ -607,6 +630,19 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
         })
         report['error_count'] += 1
         return report
+    
+    # Update final memory stats
+    final_memory = process.memory_info().rss / 1024 / 1024
+    report['memory_stats'].update({
+        'final_mb': final_memory,
+        'net_change_mb': final_memory - initial_memory
+    })
+    
+    print("\nMemory Usage Report:")
+    print(f"[*] Initial Memory: {report['memory_stats']['initial_mb']:.1f}MB")
+    print(f"[*] Peak Memory: {report['memory_stats']['peak_mb']:.1f}MB")
+    print(f"[*] Final Memory: {report['memory_stats']['final_mb']:.1f}MB")
+    print(f"[*] Total Memory Change: {report['memory_stats']['net_change_mb']:+.1f}MB")
     
     # Calculate final statistics
     report['time_taken_seconds'] = time.time() - start_time
