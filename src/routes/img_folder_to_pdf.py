@@ -298,7 +298,9 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
     
     try:
         folder_name = os.path.basename(folder_path)
-        pdf_path = os.path.join(output_path, f"{folder_name}.pdf")
+        # Ensure output directory exists and create it if needed
+        os.makedirs(output_path, exist_ok=True)
+        pdf_path = os.path.normpath(os.path.join(output_path, f"{folder_name}.pdf"))
         
         # Skip if PDF already exists
         if os.path.exists(pdf_path):
@@ -345,8 +347,8 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
                 
-                # Save as temporary JPEG
-                temp_jpg = os.path.join(os.path.dirname(img_path), f"temp_{os.path.basename(img_path)}.jpg")
+                # Save as temporary JPEG in the output directory to ensure write permissions
+                temp_jpg = os.path.normpath(os.path.join(output_path, f"temp_{os.path.basename(img_path)}.jpg"))
                 img.save(temp_jpg, 'JPEG', quality=95)
                 
                 # Add to PDF
@@ -354,10 +356,11 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
                 page.insert_image(page.rect, filename=temp_jpg)
                 
                 # Clean up temp file
-                os.remove(temp_jpg)
+                if os.path.exists(temp_jpg):
+                    os.remove(temp_jpg)
                 
             except Exception as e:
-                print(f"  [X] Error processing image {os.path.basename(img_path)}: {str(e)}")
+                print(f"  [X] Error processing image {i}/{len(images)} in folder({folder_index}/{total_folders}): {os.path.basename(img_path)} - {str(e)}")
                 continue
         
         # Save PDF
@@ -370,7 +373,10 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
         
     except Exception as e:
         result['error'] = str(e)
-        print(f"  [X] Error creating PDF: {str(e)}")
+        if folder_index is not None and total_folders is not None:
+            print(f"  [X] Error creating PDF({folder_index}/{total_folders}): {str(e)}")
+        else:
+            print(f"  [X] Error creating PDF: {str(e)}")
     
     return result
 
@@ -467,24 +473,36 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     }
     
     try:
-        print("\nScanning folders...")
-        
-        # Create destination folder if it doesn't exist
-        if request.dest_folder and not os.path.exists(request.dest_folder):
-            print(f"Creating destination folder: {request.dest_folder}")
-            os.makedirs(request.dest_folder)
+        # Validate source folder
+        if not os.path.exists(request.src_folder):
+            raise HTTPException(status_code=404, detail="Source folder does not exist")
+        if not os.path.isdir(request.src_folder):
+            raise HTTPException(status_code=400, detail="Source path must be a directory")
             
+        # Normalize paths
+        src_folder = os.path.normpath(request.src_folder)
+        if request.dest_folder:
+            dest_folder = os.path.normpath(request.dest_folder)
+            # Create destination folder if it doesn't exist
+            try:
+                os.makedirs(dest_folder, exist_ok=True)
+                print(f"Destination folder ready: {dest_folder}")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to create destination folder: {str(e)}")
+        else:
+            dest_folder = src_folder
+            
+        print("\nScanning folders...")
         # First count total processable folders
-        total_folders = sum(1 for root, _, _ in os.walk(request.src_folder) 
+        total_folders = sum(1 for root, _, _ in os.walk(src_folder) 
                           if not os.path.basename(root).startswith('.') and 
                           any(has_image_files(root, img_type) for img_type in [request.img_type]))
         
         current_folder = 0
-        for root, dirs, files in os.walk(request.src_folder):
+        for root, dirs, files in os.walk(src_folder):
             try:
                 if os.path.basename(root).startswith('.'):
                     continue
-                    
                 # Check for images of the specified type
                 if not has_image_files(root, request.img_type):
                     continue
@@ -494,15 +512,20 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                 
                 # Determine output path
                 if request.dest_folder:
-                    rel_path = os.path.relpath(root, request.src_folder)
-                    pdf_base_path = os.path.join(request.dest_folder, rel_path)
-                    # Create destination subfolder if needed
-                    if not os.path.exists(pdf_base_path):
-                        print(f"Processing folder ({current_folder}/{total_folders}): {rel_path}")
-                        os.makedirs(pdf_base_path)
+                    # Get relative path without leading ./ or .\
+                    rel_path = os.path.normpath(os.path.relpath(root, src_folder))
+                    if rel_path == '.':
+                        # If we're at the root folder, just use the folder name
+                        rel_path = os.path.basename(root)
+                    pdf_base_path = os.path.join(dest_folder, rel_path)
                 else:
                     pdf_base_path = root
                     
+                # Create destination subfolder if needed
+                if not os.path.exists(pdf_base_path):
+                    print(f"Processing folder ({current_folder}/{total_folders}): {rel_path}")
+                    os.makedirs(pdf_base_path, exist_ok=True)
+                
                 # Get all image types in the folder
                 image_types = get_image_types_in_folder(root)
                 
@@ -515,8 +538,14 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                     })
                     
                 try:
-                    result = process_images_to_pdf(root, pdf_base_path, request.img_type, image_types, 
-                                                 folder_index=current_folder, total_folders=total_folders)
+                    result = process_images_to_pdf(
+                        folder_path=root,
+                        output_path=pdf_base_path,
+                        img_type=request.img_type,
+                        image_types=image_types,
+                        folder_index=current_folder,
+                        total_folders=total_folders
+                    )
                     
                     if result['success']:
                         if result['skipped']:
