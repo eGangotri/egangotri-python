@@ -1,0 +1,6 @@
+{
+    "input_folder": "test/data",
+    "output_folder": "test/output",
+    "nFirstPages": 1,
+    "nLastPages": 1
+}

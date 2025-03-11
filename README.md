@@ -12,6 +12,9 @@ uvicorn src.main:app --host 0.0.0.0 --port 7000 --reload
 
 ### for 30 min. timeout
 uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 1800
+
+### For debug
+uvicorn src.main:app --reload --log-level debug
 # My FastAPI App
 
 This project is a FastAPI application designed to demonstrate the structure and functionality of a web application using FastAPI.

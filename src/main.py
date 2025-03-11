@@ -1,22 +1,45 @@
 import json
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from src.extractPdf.firstAndLastNPages import process_pdfs_in_folder
 from src.copyFiles import copy_all_pdfs
-from typing import Optional
+from typing import Optional, List, Dict
 from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
 from src.routes.img_folder_to_pdf import router as folder_analysis_router
 from src.utils.print_logger import PrintLogger
+import os
 
 # Initialize print logging
 PrintLogger()
 
 class ExtractFromPdfRequest(BaseModel):
+    input_folder: str = Field(..., description="Path to input folder containing PDFs")
+    output_folder: str = Field(..., description="Path where extracted PDFs will be saved")
+    nFirstPages: int = Field(..., description="Number of pages to extract from start", ge=0)
+    nLastPages: int = Field(..., description="Number of pages to extract from end", ge=0)
+
+    @model_validator(mode='after')
+    def validate_paths(self) -> 'ExtractFromPdfRequest':
+        if not self.input_folder:
+            raise ValueError("Input folder path cannot be empty")
+        if not os.path.exists(self.input_folder):
+            raise ValueError(f"Input folder '{self.input_folder}' does not exist")
+        if not os.path.isdir(self.input_folder):
+            raise ValueError(f"'{self.input_folder}' is not a directory")
+
+        if not self.output_folder:
+            raise ValueError("Output folder path cannot be empty")
+        os.makedirs(self.output_folder, exist_ok=True)
+
+        return self
+
+class ExtractFromPdfResponse(BaseModel):
+    totalFiles: int
+    processedFiles: int
+    errors: int
     input_folder: str
     output_folder: str
-    nFirstPages: int
-    nLastPages: int
-
+    log_messages: List[str]
 
 class CopyPdfRequest(BaseModel):
     input_folder: str
@@ -40,29 +63,18 @@ def read_item(item_id: int, q: str = None):
     return {"item_id": item_id, "q": q}
 
 
-@app.post("/extractFromPdf")
+@app.post("/extractFromPdf", response_model=ExtractFromPdfResponse)
 def extract_from_pdf(request: ExtractFromPdfRequest):
     try:
-        if not request.input_folder:
-            raise HTTPException(
-                status_code=400, detail="input_folder is required")
-        if not request.output_folder:
-            raise HTTPException(
-                status_code=400, detail="output_folder is required")
-        if request.nFirstPages is None:
-            raise HTTPException(
-                status_code=400, detail="nFirstPages is required")
-        if request.nLastPages is None:
-            raise HTTPException(
-                status_code=400, detail="nLastPages is required")
-
-        process_result = process_pdfs_in_folder(
-            request.input_folder, request.output_folder, request.nFirstPages, request.nLastPages)
-        return {
-            "result": process_result
-        }
+        result = process_pdfs_in_folder(
+            request.input_folder, 
+            request.output_folder, 
+            request.nFirstPages, 
+            request.nLastPages
+        )
+        return ExtractFromPdfResponse(**result)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/copyOnlyPdfs")
