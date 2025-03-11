@@ -85,16 +85,16 @@ def print_json_report(report: dict):
                 } for item in report['erroneous_pdfs']
             ]
         },
+        'status': {
+            'success': report['matching_status'],
+            'image_type_filter': report['image_type_filter'].value
+        },
         'multi_type_folders': [
             {
                 'folder': item['path'],
                 'image_types': item['types']
             } for item in report['multi_type_folders']
-        ],
-        'status': {
-            'success': report['matching_status'],
-            'image_type_filter': report['image_type_filter'].value
-        }
+        ]
     }
     print("\n[*] JSON Report:")
     print(json.dumps(json_output, indent=2))
@@ -331,7 +331,11 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
             return result
             
         folder_progress = f"({folder_index}/{total_folders})" if folder_index is not None and total_folders is not None else ""
-        print(f"  Creating PDF{folder_progress}: {os.path.basename(pdf_path)}")
+        print(f"Processing folder {folder_progress}: {os.path.relpath(folder_path, output_path)}")
+        if len(image_types) > 1:
+            print(f"Multiple image types found: {', '.join(t.value for t in image_types)}")
+        
+        print(f"Creating PDF{folder_progress}: {os.path.basename(pdf_path)}")
         
         # Create PDF
         try:
@@ -340,7 +344,7 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
             # Process each image
             for i, img_path in enumerate(images, 1):
                 try:
-                    print(f"    Adding image {i}/{len(images)} to PDF{folder_progress}...")
+                    print(f"Adding image {i}/{len(images)} to PDF (folder_{folder_index}/{total_folders})...")
                     
                     # Handle different image types
                     if img_path.lower().endswith('.cr2'):
@@ -489,7 +493,8 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
         'successful_images_count': 0,
         'time_taken_seconds': 0,
         'pdf_count_matches_folders': False,
-        'error_types': {}
+        'error_types': {},
+        'mismatched_page_counts': []  # Add list to track folders with mismatched page counts
     }
     
     try:
@@ -511,6 +516,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                     
                 current_folder += 1
                 report['total_folders'] += 1
+                report['folders_with_images'] += 1  # Increment folders_with_images when we find a folder with images
                 
                 # Calculate relative path to maintain directory structure
                 rel_path = os.path.relpath(root, request.src_folder)
@@ -646,9 +652,9 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     print(f"PDFs skipped (already exist): {report['pdfs_skipped']}")
     print(f"Images successfully processed: {report['successful_images_count']}")
     print(f"Images failed: {report['failed_images_count']}")
-    print(f"Multi-type folders: {len(report['multi_type_folders'])}")
     print(f"Total errors encountered: {report['error_count']}")
     print(f"Status: {'[*] Success' if report['pdf_count_matches_folders'] else '[X] Some folders may have failed'}")
+    print(f"Multi-type folders: {len(report['multi_type_folders'])}")
     
     if report['error_types']:
         print("\nError Type Statistics:")
