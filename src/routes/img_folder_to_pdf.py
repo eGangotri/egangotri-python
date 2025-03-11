@@ -58,13 +58,13 @@ def print_json_report(report: dict):
         },
         'image_type_stats': report['image_type_stats'],
         'issues': {
-            'mismatched_page_counts': [
+            'folders_with_mismatch_pages': [
                 {
                     'folder': item['folder_path'],
                     'image_count': item['image_count'],
                     'pdf_pages': item['pdf_pages'],
                     'image_types': item['image_types']
-                } for item in report['mismatched_page_counts']
+                } for item in report['folders_with_mismatch_pages']
             ],
             'erroneous_pdfs': [
                 {
@@ -106,7 +106,8 @@ def verfiyImgtoPdf(src_path: str, dest_path: str, img_type: ImageType):
         'multi_type_folders': [],
         'processing_time_seconds': 0,
         'image_type_stats': {},
-        'mismatched_page_counts': []  # Add list to track page count mismatches
+        'folders_with_mismatch_pages': [],  # Add list to track page count mismatches
+        'folders_with_mismatch_pages_count': 0  # Count of folders with mismatches
     }
     
     print(f"\n[*] Starting verification...")
@@ -189,13 +190,14 @@ def verfiyImgtoPdf(src_path: str, dest_path: str, img_type: ImageType):
                         print(f"  [*] Found PDF with {pdf_page_count} pages")
                         if pdf_page_count != image_count:
                             print(f"  [X] Page count mismatch! Images: {image_count}, PDF pages: {pdf_page_count}")
-                            report['mismatched_page_counts'].append({
+                            report['folders_with_mismatch_pages'].append({
                                 'pdf_path': expected_pdf,
                                 'pdf_pages': pdf_page_count,
                                 'image_count': image_count,
                                 'folder_path': root,
                                 'image_types': [t.value for t in image_types_present] if has_multiple_types else [img_type.value]
                             })
+                            report['folders_with_mismatch_pages_count'] += 1
                         else:
                             print("  [*] Page count matches")
                             
@@ -225,7 +227,7 @@ def verfiyImgtoPdf(src_path: str, dest_path: str, img_type: ImageType):
     
     report['matching_status'] = (
         report['folders_with_images'] == report['total_pdf_count'] and 
-        len(report['mismatched_page_counts']) == 0
+        len(report['folders_with_mismatch_pages']) == 0
     )
     
     # Print summary report
@@ -236,7 +238,7 @@ def verfiyImgtoPdf(src_path: str, dest_path: str, img_type: ImageType):
     print(f"Total images found: {report['total_image_count']}")
     print(f"PDFs found: {report['total_pdf_count']}")
     print(f"Missing PDFs: {report['folders_missing_pdf_count']}")
-    print(f"PDFs with page count mismatch: {len(report['mismatched_page_counts'])}")
+    print(f"PDFs with page count mismatch: {len(report['folders_with_mismatch_pages'])}")
     print(f"PDFs with errors: {len(report['erroneous_pdfs'])}")
     print(f"Folders with multiple image types: {len(report['multi_type_folders'])}")
     print(f"Overall status: {'[*] All good' if report['matching_status'] else '[X] Issues found'}")
@@ -260,9 +262,9 @@ def verfiyImgtoPdf(src_path: str, dest_path: str, img_type: ImageType):
             types_str = f" ({', '.join(item['image_types'])})" if len(item['image_types']) > 1 else ""
             print(f"- {os.path.basename(item['source'])}{types_str} ({item['image_count']} images)")
     
-    if report['mismatched_page_counts']:
-        print("\n[X] Page count mismatches:")
-        for item in report['mismatched_page_counts']:
+    if report['folders_with_mismatch_pages']:
+        print("\n[*] Page count mismatches:")
+        for item in report['folders_with_mismatch_pages']:
             types_str = f" ({', '.join(item['image_types'])})" if len(item['image_types']) > 1 else ""
             print(f"- {os.path.basename(item['folder_path'])}{types_str}: Images: {item['image_count']}, PDF pages: {item['pdf_pages']}")
     
@@ -303,16 +305,17 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
             result['success'] = True
             result['pdf_path'] = pdf_path
             result['skipped'] = True
-            print(f"  [*] Skipping existing PDF: {os.path.basename(pdf_path)}")
+            print(f"  Skipping existing PDF: {os.path.basename(pdf_path)}")
             return result
             
         folder_progress = f"({folder_index}/{total_folders})" if folder_index is not None and total_folders is not None else ""
-        print(f"[*] Creating PDF{folder_progress}: {os.path.basename(pdf_path)}")
+        print(f"Creating PDF{folder_progress}: {os.path.basename(pdf_path)}")
         
         # Get list of images
         images = []
+        extensions = get_extensions_for_type(img_type)
         for file in sorted(os.listdir(folder_path)):
-            if file.lower().endswith(tuple(f'.{ext.lower()}' for ext in img_type.value)):
+            if file.lower().endswith(tuple(extensions)):
                 images.append(os.path.join(folder_path, file))
         
         if not images:
@@ -324,7 +327,7 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
         # Create PDF
         doc = fitz.open()
         for i, img_path in enumerate(images, 1):
-            print(f"  [*] Adding image ({i}/{len(images)}): {os.path.basename(img_path)}")
+            print(f"Adding image {i}/{len(images)} to PDF(folder_{folder_index}/{total_folders}): {os.path.basename(img_path)}")
             
             try:
                 img = Image.open(img_path)
@@ -363,7 +366,7 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
         
         result['success'] = True
         result['pdf_path'] = pdf_path
-        print(f"  [*] PDF created successfully with {len(images)} pages")
+        print(f"  PDF created successfully with {len(images)} pages")
         
     except Exception as e:
         result['error'] = str(e)
@@ -399,9 +402,9 @@ def verfiyImgtoPdf_route(request: FolderAnalysisRequest):
         print(f"Total images found: {report['total_image_count']}")
         print(f"PDFs verified: {report['total_pdf_count']}")
         
-        if report['mismatched_page_counts']:
-            print("\n[X] Mismatched page counts:")
-            for mismatch in report['mismatched_page_counts']:
+        if report['folders_with_mismatch_pages']:
+            print("\n[*] Page count mismatches:")
+            for mismatch in report['folders_with_mismatch_pages']:
                 print(f"- {os.path.basename(mismatch['folder_path'])}")
                 print(f"  Images: {mismatch['image_count']}, PDF pages: {mismatch['pdf_pages']}")
         
@@ -422,8 +425,8 @@ def verfiyImgtoPdf_route(request: FolderAnalysisRequest):
                 print(f"  Count: {stats['count']} images in {stats['folders']} folders")
         
         # Convert paths to relative paths in the report for JSON serialization
-        if report['mismatched_page_counts']:
-            for item in report['mismatched_page_counts']:
+        if report['folders_with_mismatch_pages']:
+            for item in report['folders_with_mismatch_pages']:
                 item['folder_path'] = os.path.relpath(item['folder_path'], src_folder)
                 item['pdf_path'] = os.path.relpath(item['pdf_path'], dest_folder or src_folder)
         
