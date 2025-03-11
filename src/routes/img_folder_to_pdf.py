@@ -55,7 +55,6 @@ def print_json_report(report: dict):
             'total_images': report['total_image_count'],
             'total_pdfs': report['total_pdf_count'],
             'missing_pdfs': report['folders_missing_pdf_count'],
-            'mismatched_pages': len(report['mismatched_page_counts']),
             'pdf_errors': len(report['erroneous_pdfs']),
             'multi_type_folders': len(report['multi_type_folders'])
         },
@@ -68,15 +67,6 @@ def print_json_report(report: dict):
                     'image_count': item['image_count'],
                     'image_types': item['image_types']
                 } for item in report['folders_missing_pdf']
-            ],
-            'mismatched_pages': [
-                {
-                    'folder': item['folder_path'],
-                    'pdf': item['pdf_path'],
-                    'image_count': item['image_count'],
-                    'pdf_pages': item['pdf_pages'],
-                    'image_types': item['image_types']
-                } for item in report['mismatched_page_counts']
             ],
             'pdf_errors': [
                 {
@@ -109,7 +99,6 @@ def verfiyImgtoPdf(src_path: str, dest_path: str, img_type: ImageType):
         'total_image_count': 0,
         'folders_missing_pdf_count': 0,
         'erroneous_pdfs': [],
-        'mismatched_page_counts': [],
         'image_type_filter': img_type,
         'folders_missing_pdf': [],
         'multi_type_folders': [],
@@ -493,8 +482,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
         'successful_images_count': 0,
         'time_taken_seconds': 0,
         'pdf_count_matches_folders': False,
-        'error_types': {},
-        'mismatched_page_counts': []  # Add list to track folders with mismatched page counts
+        'error_types': {}
     }
     
     try:
@@ -516,7 +504,6 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                     
                 current_folder += 1
                 report['total_folders'] += 1
-                report['folders_with_images'] += 1  # Increment folders_with_images when we find a folder with images
                 
                 # Calculate relative path to maintain directory structure
                 rel_path = os.path.relpath(root, request.src_folder)
