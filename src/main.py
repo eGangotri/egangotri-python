@@ -33,13 +33,23 @@ class ExtractFromPdfRequest(BaseModel):
 
         return self
 
+class ProcessingDetail(BaseModel):
+    file: str
+    status: str
+    original_pages: Optional[int] = None
+    pages_extracted: Optional[int] = None
+    error: Optional[str] = None
+
 class ExtractFromPdfResponse(BaseModel):
-    totalFiles: int
-    processedFiles: int
-    errors: int
-    input_folder: str
-    output_folder: str
-    log_messages: List[str]
+    totalFiles: int = Field(..., description="Total number of PDF files found")
+    processedFiles: int = Field(..., description="Number of files successfully processed")
+    errors: int = Field(..., description="Number of files that failed to process")
+    input_folder: str = Field(..., description="Input folder path")
+    output_folder: str = Field(..., description="Output folder path where PDFs are saved")
+    log_messages: List[str] = Field(default_factory=list, description="Detailed progress and error messages")
+    start_time: str = Field(..., description="Processing start time")
+    duration_seconds: float = Field(..., description="Total processing time in seconds")
+    processing_details: List[ProcessingDetail] = Field(default_factory=list, description="Detailed processing information for each file")
 
 class CopyPdfRequest(BaseModel):
     input_folder: str
@@ -55,7 +65,7 @@ app.include_router(folder_analysis_router, tags=["folder-analysis"])
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"egangtri-python": "server is running"}
 
 
 @app.get("/items/{item_id}")
@@ -65,6 +75,7 @@ def read_item(item_id: int, q: str = None):
 
 @app.post("/extractFromPdf", response_model=ExtractFromPdfResponse)
 def extract_from_pdf(request: ExtractFromPdfRequest):
+    print(f"Extracting first {request.nFirstPages} and last {request.nLastPages} pages from PDFs in {request.input_folder}")
     try:
         result = process_pdfs_in_folder(
             request.input_folder, 

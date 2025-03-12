@@ -1,6 +1,6 @@
 {
-    "input_folder": "test/data",
-    "output_folder": "test/output",
+    "input_folder": "c:\\ws\\egangotri-python\\test\\data",
+    "output_folder": "c:\\ws\\egangotri-python\\test\\output",
     "nFirstPages": 1,
     "nLastPages": 1
 }
