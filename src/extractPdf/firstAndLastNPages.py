@@ -2,56 +2,106 @@ import fitz  # PyMuPDF
 import os
 import argparse
 import json
+import io
 from typing import List, Dict
 from fastapi import HTTPException
 from datetime import datetime
+from PyPDF2 import PdfReader, PdfWriter
+
+from src.extractPdf.compress_pdf import compress_pdf, optimize_pdf_structure
 
 REDUCED_FOLDER = 'reduced'
 
 
 def extract_first_and_last_n_pages(input_pdf: str, output_pdf: str, firstN: int = 10, lastN: int = 10, reduce_size: bool = True) -> None:
-    doc = fitz.open(input_pdf)
-    new_doc = fitz.open()
+    """Extract first and last N pages from a PDF, with size reduction options."""
 
+    # Try PyPDF2 for better compression
     try:
-        # Extract and optimize first N pages
-        for i in range(min(firstN, len(doc))):
-            page = doc[i]
-            new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
-            pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))  # Slight upscale for better quality
-            new_page.insert_image(new_page.rect, pixmap=pix)
+        print("Using PyPDF2 for extraction and compression...")
+        return _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size)
+    except Exception as e:
+        print(f"PyPDF2 approach failed, falling back to PyMuPDF: {str(e)}")
+        return _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size)
 
-        # Extract and optimize last N pages
-        for i in range(max(0, len(doc) - lastN), len(doc)):
-            page = doc[i]
-            new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
-            pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))  # Slight upscale for better quality
-            new_page.insert_image(new_page.rect, pixmap=pix)
 
+def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
+    """Extract and compress using PyPDF2 library with more aggressive settings."""
+    with open(input_pdf, 'rb') as file:
+        reader = PdfReader(file)
+        writer = PdfWriter()
+
+        total_pages = len(reader.pages)
+        print(f"Total pages in original PDF: {total_pages}")
+
+        # Calculate pages to include
+        first_indices = range(min(firstN, total_pages))
+        last_indices = range(max(0, total_pages - lastN), total_pages)
+        selected = set(list(first_indices) + list(last_indices))
+        selected = sorted(list(selected))
+
+        print(f"Selected {len(selected)} pages from {total_pages} total pages")
+
+        # Add selected pages to the new PDF
+        for i in selected:
+            writer.add_page(reader.pages[i])
+
+        # Apply compression if requested
         if reduce_size:
-            # Save with aggressive compression settings
-            new_doc.save(output_pdf,
-                deflate=True,      # Use deflate compression
-                garbage=4,         # Maximum garbage collection
-                clean=True,        # Clean unused elements
-                pretty=False,      # No pretty printing
-                linear=True,       # Optimize for web viewing
-                ascii=False,       # Allow binary compression
-                compress=True      # Use compression for streams
-            )
-        else:
-            new_doc.save(output_pdf)
-    finally:
-        new_doc.close()
-        doc.close()
+            print(f"Applying PDF compression to improve file size...")
+            # Activate compression on every page
+            for page in writer.pages:
+                page.compress_content_streams()  # This applies compression to content streams
+
+            # Set the compression parameters for the writer
+            writer.remove_images = False  # Keep images but compress them
+
+        # Write the output file
+        with open(output_pdf, 'wb') as output_file:
+            writer.write(output_file)
+
+        # Return success
+        return True
+
+
+def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size):
+    """Extract using PyMuPDF as a fallback method."""
+    doc = fitz.open(input_pdf)
+    total_pages = len(doc)
+
+    # Calculate pages to include
+    first_indices = range(min(firstN, total_pages))
+    last_indices = range(max(0, total_pages - lastN), total_pages)
+    selected = set(list(first_indices) + list(last_indices))
+    selected = sorted(list(selected))
+
+    # Create a new document with selected pages
+    new_doc = fitz.open()
+    for i in selected:
+        new_doc.insert_pdf(doc, from_page=i, to_page=i)
+
+    print(
+        f"Selected {len(selected)} pages from {total_pages} total pages using PyMuPDF")
+
+    if reduce_size:
+        # Basic compression settings
+        print('Saving with PyMuPDF basic compression...')
+        new_doc.save(output_pdf, garbage=4, deflate=True)
+    else:
+        new_doc.save(output_pdf)
+
+    new_doc.close()
+    doc.close()
+    return True
 
 
 def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN: int = 10, lastN: int = 10, reduce_size: bool = True) -> Dict:
     start_time = datetime.now()
-    
+
     # Initialize statistics with default output folder
-    default_output = os.path.join(input_folder, REDUCED_FOLDER) if output_folder is None else output_folder
-    
+    default_output = os.path.join(
+        input_folder, REDUCED_FOLDER) if output_folder is None else output_folder
+
     stats = {
         "totalFiles": 0,
         "processedFiles": 0,
@@ -66,11 +116,14 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
 
     # Input validation with detailed messages
     if not input_folder:
-        raise HTTPException(status_code=400, detail="Input folder path cannot be empty")
+        raise HTTPException(
+            status_code=400, detail="Input folder path cannot be empty")
     if not os.path.exists(input_folder):
-        raise HTTPException(status_code=400, detail=f"Input folder '{input_folder}' does not exist")
+        raise HTTPException(
+            status_code=400, detail=f"Input folder '{input_folder}' does not exist")
     if not os.path.isdir(input_folder):
-        raise HTTPException(status_code=400, detail=f"'{input_folder}' is not a directory")
+        raise HTTPException(
+            status_code=400, detail=f"'{input_folder}' is not a directory")
 
     # Find PDF files with progress reporting
     msg = f"🔍 Scanning {input_folder} for PDF files..."
@@ -86,19 +139,20 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
                 pdf_files.append((root, file))
 
     stats["totalFiles"] = len(pdf_files)
-    
+
     # Early return if no PDFs found
     if stats["totalFiles"] == 0:
         msg = f"📂 No PDF files found in {input_folder}"
         print(msg)
         stats["log_messages"].append(msg)
-        stats["duration_seconds"] = (datetime.now() - start_time).total_seconds()
+        stats["duration_seconds"] = (
+            datetime.now() - start_time).total_seconds()
         return stats
 
     # Setup output folder with count
     last_folder_name = os.path.basename(os.path.normpath(input_folder))
     folder_with_count = f"{last_folder_name}({stats['totalFiles']})"
-    
+
     final_output = os.path.join(default_output, folder_with_count)
     stats["output_folder"] = final_output
     os.makedirs(final_output, exist_ok=True)
@@ -129,17 +183,39 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
             print(msg)
             stats["log_messages"].append(msg)
 
-            extract_first_and_last_n_pages(input_pdf, output_pdf, firstN, lastN, reduce_size)
+            extract_first_and_last_n_pages(
+                input_pdf, output_pdf, firstN, lastN, reduce_size)
             stats["processedFiles"] += 1
-            
+
             # Success message with size info
-            original_size = os.path.getsize(input_pdf) / (1024 * 1024)  # Convert to MB
-            new_size = os.path.getsize(output_pdf) / (1024 * 1024)  # Convert to MB
+            original_size = os.path.getsize(
+                input_pdf) / (1024 * 1024)  # Convert to MB
+            new_size = os.path.getsize(
+                output_pdf) / (1024 * 1024)  # Convert to MB
             size_info = f" (Old Size: {original_size:.2f} MB, New Size: {new_size:.2f} MB)"
             msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name}{size_info}"
-            print(msg)
+
+            # Example usage
+            compressed_pdf = output_pdf.replace('.pdf', '_compressed.pdf')
+            optimized_pdf = compressed_pdf.replace('.pdf', '_optimized.pdf')
+            print(f"{compressed_pdf} {optimized_pdf}")
+            # Step 1: Compress images and reduce resolution
+            compress_pdf(output_pdf, compressed_pdf, zoom_x=0.5, zoom_y=0.5)
+
+            # Step 2: Optimize PDF structure
+            optimize_pdf_structure(compressed_pdf, optimized_pdf)
+
+            print("PDF compression and optimization complete!")
+            original_size2 = os.path.getsize(
+                compressed_pdf) / (1024 * 1024)  # Convert to MB
+            new_size3 = os.path.getsize(
+                optimized_pdf) / (1024 * 1024)  # Convert to MB
+            size_info2 = f""" (Old Size: {original_size2:.2f} MB, New Size: {new_size3:.2f} MB)"
+             Completed: {compressed_pdf} -> {optimized_pdf}"""
+
+            print(size_info2)
             stats["log_messages"].append(msg)
-            
+
             # Add processing details
             stats["processing_details"].append({
                 "file": file,
@@ -162,7 +238,7 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
     # Add final summary with emojis
     end_time = datetime.now()
     stats["duration_seconds"] = (end_time - start_time).total_seconds()
-    
+
     summary = [
         f"📊 Processing Summary:",
         f"   • Total Files: {stats['totalFiles']}",
@@ -172,7 +248,7 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
         f"   • Input Folder: {input_folder}",
         f"   • Output Folder: {stats['output_folder']}"
     ]
-    
+
     stats["log_messages"].extend(summary)
     return stats
 
@@ -192,5 +268,6 @@ if __name__ == "__main__":
                         help="Disable PDF size reduction (enabled by default)")
 
     args = parser.parse_args()
-    result = process_pdfs_in_folder(args.input_folder, args.output_folder, args.firstN, args.lastN, not args.no_reduce_size)
+    result = process_pdfs_in_folder(
+        args.input_folder, args.output_folder, args.firstN, args.lastN, not args.no_reduce_size)
     print(json.dumps(result, indent=4))
