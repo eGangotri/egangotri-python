@@ -9,26 +9,44 @@ from datetime import datetime
 REDUCED_FOLDER = 'reduced'
 
 
-def extract_first_and_last_n_pages(input_pdf: str, output_pdf: str, firstN: int = 10, lastN: int = 10) -> None:
+def extract_first_and_last_n_pages(input_pdf: str, output_pdf: str, firstN: int = 10, lastN: int = 10, reduce_size: bool = True) -> None:
     doc = fitz.open(input_pdf)
     new_doc = fitz.open()
 
     try:
-        # Extract first N pages
+        # Extract and optimize first N pages
         for i in range(min(firstN, len(doc))):
-            new_doc.insert_pdf(doc, from_page=i, to_page=i)
+            page = doc[i]
+            new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))  # Slight upscale for better quality
+            new_page.insert_image(new_page.rect, pixmap=pix)
 
-        # Extract last N pages
+        # Extract and optimize last N pages
         for i in range(max(0, len(doc) - lastN), len(doc)):
-            new_doc.insert_pdf(doc, from_page=i, to_page=i)
+            page = doc[i]
+            new_page = new_doc.new_page(width=page.rect.width, height=page.rect.height)
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5))  # Slight upscale for better quality
+            new_page.insert_image(new_page.rect, pixmap=pix)
 
-        new_doc.save(output_pdf)
+        if reduce_size:
+            # Save with aggressive compression settings
+            new_doc.save(output_pdf,
+                deflate=True,      # Use deflate compression
+                garbage=4,         # Maximum garbage collection
+                clean=True,        # Clean unused elements
+                pretty=False,      # No pretty printing
+                linear=True,       # Optimize for web viewing
+                ascii=False,       # Allow binary compression
+                compress=True      # Use compression for streams
+            )
+        else:
+            new_doc.save(output_pdf)
     finally:
         new_doc.close()
         doc.close()
 
 
-def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN: int = 10, lastN: int = 10) -> Dict:
+def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN: int = 10, lastN: int = 10, reduce_size: bool = True) -> Dict:
     start_time = datetime.now()
     
     # Initialize statistics with default output folder
@@ -111,11 +129,14 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
             print(msg)
             stats["log_messages"].append(msg)
 
-            extract_first_and_last_n_pages(input_pdf, output_pdf, firstN, lastN)
+            extract_first_and_last_n_pages(input_pdf, output_pdf, firstN, lastN, reduce_size)
             stats["processedFiles"] += 1
             
-            # Success message
-            msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name}"
+            # Success message with size info
+            original_size = os.path.getsize(input_pdf) / (1024 * 1024)  # Convert to MB
+            new_size = os.path.getsize(output_pdf) / (1024 * 1024)  # Convert to MB
+            size_info = f" (Old Size: {original_size:.2f} MB, New Size: {new_size:.2f} MB)"
+            msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name}{size_info}"
             print(msg)
             stats["log_messages"].append(msg)
             
@@ -167,7 +188,9 @@ if __name__ == "__main__":
                         help="Number of first pages to extract.")
     parser.add_argument("--lastN", type=int, default=10,
                         help="Number of last pages to extract.")
+    parser.add_argument("--no-reduce-size", action="store_true",
+                        help="Disable PDF size reduction (enabled by default)")
 
     args = parser.parse_args()
-    result = process_pdfs_in_folder(args.input_folder, args.output_folder, args.firstN, args.lastN)
+    result = process_pdfs_in_folder(args.input_folder, args.output_folder, args.firstN, args.lastN, not args.no_reduce_size)
     print(json.dumps(result, indent=4))
