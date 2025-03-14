@@ -327,8 +327,20 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
             
         result['image_count'] = len(images)
         
-        # Create PDF
+        # Create PDF with specified options for better compatibility
         doc = fitz.open()
+        
+        # Add metadata to improve PDF compliance
+        doc.set_metadata({
+            "creator": "- PDF Generator",
+            "producer": "PyMuPDF",
+            "title": folder_name,
+            "creationDate": fitz.get_pdf_now(),
+            "modDate": fitz.get_pdf_now()
+        })
+        
+        temp_files = []  # Track temp files for cleanup
+        
         for i, img_path in enumerate(images, 1):
             print(f"Adding image {i}/{len(images)} to PDF(folder_{folder_index}/{total_folders}): {os.path.basename(img_path)}")
             
@@ -349,24 +361,54 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
                     img = img.convert('RGB')
                 
                 # Save as temporary JPEG in the output directory to ensure write permissions
-                temp_jpg = os.path.normpath(os.path.join(output_path, f"temp_{os.path.basename(img_path)}.jpg"))
+                temp_jpg = os.path.normpath(os.path.join(output_path, f"temp_{os.path.basename(img_path)}_{i}.jpg"))
                 img.save(temp_jpg, 'JPEG', quality=95)
+                temp_files.append(temp_jpg)
                 
-                # Add to PDF
+                # Add to PDF using improved method
+                rect = fitz.Rect(0, 0, img.width, img.height)
                 page = doc.new_page(width=img.width, height=img.height)
-                page.insert_image(page.rect, filename=temp_jpg)
-                
-                # Clean up temp file
-                if os.path.exists(temp_jpg):
-                    os.remove(temp_jpg)
+                page.insert_image(rect, filename=temp_jpg)
                 
             except Exception as e:
                 print(f"  [X] Error processing image {i}/{len(images)} in folder({folder_index}/{total_folders}): {os.path.basename(img_path)} - {str(e)}")
                 continue
         
-        # Save PDF
-        doc.save(pdf_path)
+        # Save PDF with careful options to maximize standards compliance
+        doc.save(
+            pdf_path, 
+            garbage=4,           # Maximum cleanup level
+            deflate=True,        # Use deflate compression
+            clean=True,          # Clean content streams
+            linear=True,         # Linearize PDF for web optimization
+            pretty=False,        # Don't use pretty format (more compact)
+            ascii=False,         # Use binary format for smaller files
+            expand=False,        # Don't expand objects to improve compatibility
+        )
         doc.close()
+        
+        # Clean up all temp files
+        for temp_file in temp_files:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except Exception as e:
+                    print(f"  [!] Warning: Could not remove temp file {temp_file}: {str(e)}")
+        
+        # Verify the PDF with fitz to ensure it's properly created
+        try:
+            # First validate with PdfReader
+            with open(pdf_path, 'rb') as pdf_file:
+                PdfReader(pdf_file)
+            
+            # Then check page count with fitz
+            with fitz.open(pdf_path) as pdf_doc:
+                num_pages = len(pdf_doc)
+                print(f"  [*] Found PDF with {num_pages} pages")
+                if num_pages != len(images):
+                    print(f"  [!] Warning: Created PDF has {num_pages} pages but expected {len(images)}")
+        except Exception as e:
+            print(f"  [!] Warning: Could not verify PDF: {str(e)}")
         
         result['success'] = True
         result['pdf_path'] = pdf_path

@@ -21,6 +21,9 @@ uvicorn src.main:app --reload --log-level debug
 # To use ghostscript for pdf reduction 
 https://www.ghostscript.com/releases/gsdnld.html
 export PATH="$PATH:/c/Program Files/gs/gs10.05.0/bin"
+OR
+export PATH="$PATH:/cygdrive/c/Program Files/gs/gs10.05.0/bin"
+
  gswin64c --version
  
 This project is a FastAPI application designed to demonstrate the structure and functionality of a web application using FastAPI.
