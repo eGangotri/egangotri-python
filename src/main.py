@@ -6,6 +6,7 @@ from src.copyFiles import copy_all_pdfs
 from typing import Optional, List, Dict
 from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
 from src.routes.img_folder_to_pdf import router as folder_analysis_router
+from src.routes.pdf_merge import router as pdf_merge_router
 from src.utils.print_logger import PrintLogger
 import os
 
@@ -62,6 +63,7 @@ class CR2ToPdfRequest(BaseModel):
 
 app = FastAPI()
 app.include_router(folder_analysis_router, tags=["folder-analysis"])
+app.include_router(pdf_merge_router, tags=["pdf-operations"])
 
 
 @app.get("/")
