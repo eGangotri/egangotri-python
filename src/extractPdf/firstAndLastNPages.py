@@ -11,7 +11,7 @@ from PyPDF2 import PdfReader, PdfWriter
 from src.extractPdf.compress_pdf import _compress_with_ghostscript
 
 REDUCED_FOLDER = 'reduced'
-
+UNCOMPRESSED_SUFFIX = "_uncmprsd"
 
 def extract_first_and_last_n_pages(input_pdf: str, output_pdf: str, firstN: int = 10, lastN: int = 10, reduce_size: bool = True) -> None:
     """Extract first and last N pages from a PDF, with size reduction options."""
@@ -175,7 +175,7 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
                 page_count = 0  # Default if we can't read it
 
             base_name, ext = os.path.splitext(file)
-            new_file_name = f"{base_name}_{page_count:04d}{ext}"
+            new_file_name = f"{base_name}_{page_count:04d}{UNCOMPRESSED_SUFFIX}{ext}"
 
             # Maintain the original folder structure
             relative_path = os.path.relpath(root, input_folder)
@@ -199,21 +199,25 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
                 new_size = os.path.getsize(
                     output_pdf) / (1024 * 1024)  # Convert to MB
                 size_info = f" (Old Size: {original_size:.2f} MB, New Size: {new_size:.2f} MB)"
-                msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name}{size_info}"
+                msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name.replace(UNCOMPRESSED_SUFFIX, '')}{size_info}"
                 print(msg)
 
                 # Only attempt compression if extraction was successful and reduce_size is True
                 if reduce_size and os.path.exists(output_pdf) and os.path.getsize(output_pdf) > 0:
+                    compressed_pdf = output_pdf.replace(UNCOMPRESSED_SUFFIX, '')
                     try:
-                        # Create filenames for compressed versions
-                        compressed_pdf = output_pdf.replace(
-                            '.pdf', '_compressed.pdf')
                         _compress_with_ghostscript(
                             output_pdf, compressed_pdf)
                         new_size2 = os.path.getsize(
-                            compressed_pdf) / (1024 * 1024)  # Convert to MB
-                        msg2 = f"✅ ( {file} -> {new_file_name} -> {compressed_pdf} {new_size2:.2f} MB)"
+                            compressed_pdf) / (1024 * 1024)
+                        msg2 = f"✅ ( Post compression size of {compressed_pdf} {new_size2:.2f} MB)"
+                        
                         print(msg2)
+                        
+                        # Delete the uncompressed output PDF after successful compression
+                        if os.path.exists(output_pdf) and os.path.exists(compressed_pdf):
+                            os.remove(output_pdf)
+                            print(f"🗑️ Deleted uncompressed file: {os.path.basename(output_pdf)}")
                     except Exception as e:
                         print(f"Warning: Compression steps failed: {str(e)}")
                         # Continue with the uncompressed version
