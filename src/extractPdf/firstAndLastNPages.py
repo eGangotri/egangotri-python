@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from datetime import datetime
 from PyPDF2 import PdfReader, PdfWriter
 
-from src.extractPdf.compress_pdf import compress_pdf, optimize_pdf_structure
+from src.extractPdf.compress_pdf import _compress_with_ghostscript
 
 REDUCED_FOLDER = 'reduced'
 
@@ -18,7 +18,7 @@ def extract_first_and_last_n_pages(input_pdf: str, output_pdf: str, firstN: int 
 
     # Try PyPDF2 for better compression
     try:
-        print("Using PyPDF2 for extraction and compression...")
+        print("Using PyPDF2/ghostscript for extraction and compression...")
         return _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size)
     except Exception as e:
         print(f"PyPDF2 approach failed, falling back to PyMuPDF: {str(e)}")
@@ -50,11 +50,11 @@ def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
         if reduce_size:
             print(f"Applying PDF compression to improve file size...")
             # Activate compression on every page
-            for page in writer.pages:
-                page.compress_content_streams()  # This applies compression to content streams
+            # for page in writer.pages:
+            #     page.compress_content_streams()  # This applies compression to content streams
 
-            # Set the compression parameters for the writer
-            writer.remove_images = False  # Keep images but compress them
+            # # Set the compression parameters for the writer
+            # writer.remove_images = False  # Keep images but compress them
 
         # Write the output file
         with open(output_pdf, 'wb') as output_file:
@@ -165,9 +165,14 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
     for idx, (root, file) in enumerate(pdf_files, 1):
         try:
             input_pdf = os.path.join(root, file)
-            doc = fitz.open(input_pdf)
-            page_count = len(doc)
-            doc.close()
+            try:
+                doc = fitz.open(input_pdf)
+                page_count = len(doc)
+                doc.close()
+            except Exception as e:
+                print(
+                    f"Warning: Could not read page count for {file}: {str(e)}")
+                page_count = 0  # Default if we can't read it
 
             base_name, ext = os.path.splitext(file)
             new_file_name = f"{base_name}_{page_count:04d}{ext}"
@@ -183,37 +188,42 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
             print(msg)
             stats["log_messages"].append(msg)
 
-            extract_first_and_last_n_pages(
-                input_pdf, output_pdf, firstN, lastN, reduce_size)
-            stats["processedFiles"] += 1
+            try:
+                extract_first_and_last_n_pages(
+                    input_pdf, output_pdf, firstN, lastN, reduce_size)
+                stats["processedFiles"] += 1
 
-            # Success message with size info
-            original_size = os.path.getsize(
-                input_pdf) / (1024 * 1024)  # Convert to MB
-            new_size = os.path.getsize(
-                output_pdf) / (1024 * 1024)  # Convert to MB
-            size_info = f" (Old Size: {original_size:.2f} MB, New Size: {new_size:.2f} MB)"
-            msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name}{size_info}"
+                # Success message with size info
+                original_size = os.path.getsize(
+                    input_pdf) / (1024 * 1024)  # Convert to MB
+                new_size = os.path.getsize(
+                    output_pdf) / (1024 * 1024)  # Convert to MB
+                size_info = f" (Old Size: {original_size:.2f} MB, New Size: {new_size:.2f} MB)"
+                msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name}{size_info}"
+                print(msg)
 
-            # Example usage
-            compressed_pdf = output_pdf.replace('.pdf', '_compressed.pdf')
-            optimized_pdf = compressed_pdf.replace('.pdf', '_optimized.pdf')
-            print(f"{compressed_pdf} {optimized_pdf}")
-            # Step 1: Compress images and reduce resolution
-            compress_pdf(output_pdf, compressed_pdf, zoom_x=0.5, zoom_y=0.5)
+                # Only attempt compression if extraction was successful and reduce_size is True
+                if reduce_size and os.path.exists(output_pdf) and os.path.getsize(output_pdf) > 0:
+                    try:
+                        # Create filenames for compressed versions
+                        compressed_pdf = output_pdf.replace(
+                            '.pdf', '_compressed.pdf')
+                        _compress_with_ghostscript(
+                            output_pdf, compressed_pdf)
+                        new_size2 = os.path.getsize(
+                            compressed_pdf) / (1024 * 1024)  # Convert to MB
+                        msg2 = f"✅ ( {file} -> {new_file_name} -> {compressed_pdf} {new_size2:.2f} MB)"
+                        print(msg2)
+                    except Exception as e:
+                        print(f"Warning: Compression steps failed: {str(e)}")
+                        # Continue with the uncompressed version
 
-            # Step 2: Optimize PDF structure
-            optimize_pdf_structure(compressed_pdf, optimized_pdf)
+            except Exception as e:
+                error_msg = f"❌ Error extracting pages from {file}: {str(e)}"
+                print(error_msg)
+                stats["log_messages"].append(error_msg)
+                raise  # Re-raise to be caught by the outer try-except
 
-            print("PDF compression and optimization complete!")
-            original_size2 = os.path.getsize(
-                compressed_pdf) / (1024 * 1024)  # Convert to MB
-            new_size3 = os.path.getsize(
-                optimized_pdf) / (1024 * 1024)  # Convert to MB
-            size_info2 = f""" (Old Size: {original_size2:.2f} MB, New Size: {new_size3:.2f} MB)"
-             Completed: {compressed_pdf} -> {optimized_pdf}"""
-
-            print(size_info2)
             stats["log_messages"].append(msg)
 
             # Add processing details

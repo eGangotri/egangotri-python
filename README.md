@@ -11,12 +11,18 @@ pip freeze > requirements.txt
 uvicorn src.main:app --host 0.0.0.0 --port 7000 --reload
 
 ### for 30 min. timeout
+
 uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 1800
 
 ### For debug
 uvicorn src.main:app --reload --log-level debug
 # My FastAPI App
 
+# To use ghostscript for pdf reduction 
+https://www.ghostscript.com/releases/gsdnld.html
+export PATH="$PATH:/c/Program Files/gs/gs10.05.0/bin"
+ gswin64c --version
+ 
 This project is a FastAPI application designed to demonstrate the structure and functionality of a web application using FastAPI.
 
 ## Project Structure
