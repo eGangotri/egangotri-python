@@ -1,5 +1,5 @@
 # egangotri-python
-Python Codebase for eGangotri
+Python/Fast API Codebase for eGangotri
 
 # First Time after Git clone
 python -m venv venv

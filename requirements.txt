@@ -128,3 +128,9 @@ webencodings==0.5.1
 websocket-client==1.6.3
 widgetsnbextension==4.0.8
 win32-setctime==1.1.0
+internetarchive==5.4.0
+jsonpatch==1.33
+jsonpointer==3.0.0
+requests==2.32.3
+tqdm==4.67.1
+urllib3==2.4.0
