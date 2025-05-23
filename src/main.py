@@ -8,6 +8,7 @@ from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
 from src.routes.img_folder_to_pdf import router as folder_analysis_router
 from src.routes.pdf_merge import router as pdf_merge_router
 from src.utils.print_logger import PrintLogger
+from src.archive.upload import bulk_upload_pdfs as archive_bulk_upload
 import os
 
 # Initialize print logging
@@ -60,6 +61,21 @@ class CopyPdfRequest(BaseModel):
 class CR2ToPdfRequest(BaseModel):
     cr2_folder: str
     output_jpg_path: str
+
+class BulkUploadPdfRequest(BaseModel):
+    directory_path: str = Field(..., description="Path to directory containing PDFs")
+    metadata: Dict = Field(..., description="Metadata for the upload")
+    accepted_extensions: List[str] = Field(default=[".pdf"], description="List of accepted file extensions")
+
+    @model_validator(mode='after')
+    def validate_paths(self) -> 'BulkUploadPdfRequest':
+        if not self.directory_path:
+            raise ValueError("Directory path cannot be empty")
+        if not os.path.exists(self.directory_path):
+            raise ValueError(f"Directory '{self.directory_path}' does not exist")
+        if not os.path.isdir(self.directory_path):
+            raise ValueError(f"'{self.directory_path}' is not a directory")
+        return self
 
 app = FastAPI()
 app.include_router(folder_analysis_router, tags=["folder-analysis"])
@@ -121,3 +137,14 @@ def convertCr2ToJpgs(request: CR2ToPdfRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/bulk-upload-pdfs")
+def bulk_upload_pdfs_endpoint(request: BulkUploadPdfRequest):
+    try:
+        results = archive_bulk_upload(request.directory_path, request.metadata, request.accepted_extensions)
+        return {
+            "success": True,
+            "results": results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,6 +1,6 @@
 {
     "[python]": {
-        "editor.defaultFormatter": "ms-python.autopep8"
+        "editor.defaultFormatter": "KylinIDETeam.python"
     },
     "python.formatting.provider": "none",
     "python.pythonPath": "c:\\ws\\egangotri-python\\venv\\Scripts\\python.exe"

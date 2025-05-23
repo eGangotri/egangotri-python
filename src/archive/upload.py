@@ -8,14 +8,9 @@ from tqdm import tqdm
 # Configure your credentials
 # https://archive.org/account/s3.php
 
-config = {
-    's3': {
-        'access': 'oUm4XSWaSgJBmqbI',
-        'secret': 'NxeUwX2eF3Kbu8Xk'
-    }
-}
+config = 
 
-def bulk_upload(identifier, files, metadata=None):
+def bulk_upload(identifier, files, config, metadata=None):
     """Upload multiple files to Archive.org with progress tracking"""
     if metadata is None:
         metadata = {
@@ -31,11 +26,16 @@ def bulk_upload(identifier, files, metadata=None):
         identifier,
         files=files,
         metadata=metadata,
-        config=config
+        config={
+            's3': {
+                'access': config['s3']['access'],
+                'secret': config['s3']['secret']
+            }
+        }
     )
     return response
 
-def bulk_upload_pdfs(directory_path, accepted_extensions=['.pdf']):
+def bulk_upload_pdfs(directory_path, metadataSetOne, config, accepted_extensions=['.pdf']):
     """Upload all PDF files from a directory to Archive.org
     
     Args:
@@ -67,13 +67,13 @@ def bulk_upload_pdfs(directory_path, accepted_extensions=['.pdf']):
                 # Generate unique ID for each file
                 item_id = generate_item_id(file)
                 # Get metadata from filename
-                metadata = get_metadata_from_filename(file)
+                metadata = get_metadata_from_filename(file, metadataSetOne)
                 
                 print(f"Processing {file}...")
                 print(f"Title: {metadata['title']}")
                 print(f"Creator: {metadata['creator']}")
                 
-                result = bulk_upload(item_id, [full_path], metadata)
+                result = bulk_upload(item_id, [full_path], config, metadata)
                 
                 upload_result = {
                     'file': file,
@@ -129,9 +129,8 @@ def generate_item_id(filename):
     
     return item_id
 
-def get_metadata_from_filename(filename):
+def get_metadata_from_filename(filename, metadataSetOne):
     """Extract title and creator from filename"""
-    DEFAULT_CREATOR = 'Unknown Author'
     # Remove extension
     name_without_ext = os.path.splitext(filename)[0]
     
@@ -141,12 +140,13 @@ def get_metadata_from_filename(filename):
         creator = name_without_ext.split('-')[-1].strip()
     else:
         title = name_without_ext
-        creator = DEFAULT_CREATOR
+        creator = metadataSetOne.get("creator", "")
     
     return {
         'title': title,
         'creator': creator,
-        'description': f'Uploaded from file: {filename}',
+        'subject': metadataSetOne.get("subject", ""),
+        'description': f'{metadataSetOne.get("description", "")} {filename}',
         'mediatype': 'texts'
     }
 
