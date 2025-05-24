@@ -8,7 +8,7 @@ from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
 from src.routes.img_folder_to_pdf import router as folder_analysis_router
 from src.routes.pdf_merge import router as pdf_merge_router
 from src.utils.print_logger import PrintLogger
-from src.archive.upload import bulk_upload_pdfs as archive_bulk_upload
+from src.archive.upload import bulk_upload_pdfs 
 import os
 
 # Initialize print logging
@@ -140,8 +140,28 @@ def convertCr2ToJpgs(request: CR2ToPdfRequest):
 
 @app.post("/bulk-upload-pdfs")
 def bulk_upload_pdfs_endpoint(request: BulkUploadPdfRequest):
+    """
+    Bulk upload PDFs to Archive.org
+    
+            const payload = {
+                "profile": profile,
+                "directory_path": getFolderInSrcRootForProfile(profile),
+                "metadata": {
+                    "mediatype": "texts",
+                    "collection": "opensource",
+                    "s3": {
+                      "access": _s3Props.accessKey,
+                      "secret": _s3Props.secretKey
+                    },
+                    "creator": _metadata.creator,
+                    "subject": _metadata.subject + (subjectDesc?.trim()?.length > 0 ? ` , ${subjectDesc}` : ""),
+                    "description": _metadata.description + (subjectDesc?.trim()?.length > 0 ? ` , ${subjectDesc}` : "")
+                },
+                "accepted_extensions": [".pdf"]
+            }
+    """
     try:
-        results = archive_bulk_upload(request.directory_path, request.metadata, request.accepted_extensions)
+        results = bulk_upload_pdfs(request.profile, request.directory_path, request.metadata, request.accepted_extensions)
         return {
             "success": True,
             "results": results

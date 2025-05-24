@@ -4,21 +4,16 @@ import random
 import re
 from string import ascii_letters
 from tqdm import tqdm
+from .utils import add_to_upload_cycle
 
 # Configure your credentials
 # https://archive.org/account/s3.php
 
-config = 
 
-def bulk_upload(identifier, files, config, metadata=None):
+def bulk_upload(identifier, files, config,metadata=None):
     """Upload multiple files to Archive.org with progress tracking"""
     if metadata is None:
-        metadata = {
-            'title': 'My Bulk Upload',
-            'mediatype': 'data',
-            'collection': 'opensource',
-            'description': 'Files uploaded via Python API'
-        }
+        return None
     
     # Show progress bar for the upload
     print(f"Uploading {len(files)} files to {identifier}...")
@@ -35,7 +30,7 @@ def bulk_upload(identifier, files, config, metadata=None):
     )
     return response
 
-def bulk_upload_pdfs(directory_path, metadataSetOne, config, accepted_extensions=['.pdf']):
+def bulk_upload_pdfs(directory_path, metadata_set_one, config, accepted_extensions=['.pdf']):
     """Upload all PDF files from a directory to Archive.org
     
     Args:
@@ -56,6 +51,7 @@ def bulk_upload_pdfs(directory_path, metadataSetOne, config, accepted_extensions
     """
     results = []
     
+          
     if not os.path.exists(directory_path):
         print(f"Directory not found: {directory_path}")
         return results
@@ -67,24 +63,24 @@ def bulk_upload_pdfs(directory_path, metadataSetOne, config, accepted_extensions
                 # Generate unique ID for each file
                 item_id = generate_item_id(file)
                 # Get metadata from filename
-                metadata = get_metadata_from_filename(file, metadataSetOne)
+                metadata = get_metadata_from_filename(file, metadata_set_one)
                 
                 print(f"Processing {file}...")
                 print(f"Title: {metadata['title']}")
                 print(f"Creator: {metadata['creator']}")
-                
-                result = bulk_upload(item_id, [full_path], config, metadata)
-                
+            
+                result0 = bulk_upload(item_id, [full_path], config, metadata)
+
                 upload_result = {
                     'file': file,
                     'item_id': item_id,
                     'title': metadata['title'],
                     'creator': metadata['creator'],
                     'url': f"https://archive.org/details/{item_id}",
-                    'success': bool(result)
+                    'success': bool(result0)
                 }
                 
-                if result:
+                if result0:
                     print("Upload successful")
                     print(f"View your upload: {upload_result['url']}\n")
                 else:
@@ -129,7 +125,7 @@ def generate_item_id(filename):
     
     return item_id
 
-def get_metadata_from_filename(filename, metadataSetOne):
+def get_metadata_from_filename(filename, metadata_set_one):
     """Extract title and creator from filename"""
     # Remove extension
     name_without_ext = os.path.splitext(filename)[0]
@@ -140,27 +136,12 @@ def get_metadata_from_filename(filename, metadataSetOne):
         creator = name_without_ext.split('-')[-1].strip()
     else:
         title = name_without_ext
-        creator = metadataSetOne.get("creator", "")
+        creator = metadata_set_one.get("creator", "")
     
     return {
         'title': title,
         'creator': creator,
-        'subject': metadataSetOne.get("subject", ""),
-        'description': f'{metadataSetOne.get("description", "")} {filename}',
+        'subject': metadata_set_one.get("subject", ""),
+        'description': f'{metadata_set_one.get("description", "")} {filename}',
         'mediatype': 'texts'
     }
-
-if __name__ == "__main__":
-    # --- CONFIGURE HERE ---
-    SCAN_DIRECTORY = 'C:\\tmp\_tst'
-    ACCEPTED_EXTENSIONS = ['.pdf']
-    # ----------------------
-
-    # Upload all PDFs from the directory
-    results = bulk_upload_pdfs(SCAN_DIRECTORY, ACCEPTED_EXTENSIONS)
-    
-    # Print summary
-    print("\nUpload Summary:")
-    print(f"Total files processed: {len(results)}")
-    print(f"Successful uploads: {sum(1 for r in results if r['success'])}")
-    print(f"Failed uploads: {sum(1 for r in results if not r['success'])}")
