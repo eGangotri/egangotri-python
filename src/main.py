@@ -1,7 +1,7 @@
 import json
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, model_validator
-from src.extractPdf.firstAndLastNPages import process_pdfs_in_folder
+from src.extractPdf.first_and_last_n_pages import process_pdfs_in_folder
 from src.copyFiles import copy_all_pdfs
 from typing import Optional, List, Dict
 from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
