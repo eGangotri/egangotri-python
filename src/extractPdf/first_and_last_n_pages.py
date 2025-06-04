@@ -14,6 +14,7 @@ from typing import Dict
 from datetime import datetime
 from fastapi import HTTPException
 from PyPDF2 import PdfReader, PdfWriter
+import fitz  # PyMuPDF 1.26.0
 
 from src.extractPdf.compress_pdf import _compress_with_ghostscript
 
@@ -73,7 +74,7 @@ def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
 
 def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size):
     """Extract using PyMuPDF as a fallback method."""
-    doc = fitz.Document(input_pdf)
+    doc = fitz.open(input_pdf)  # Updated to use open() instead of Document()
     total_pages = len(doc)
 
     # Calculate pages to include
@@ -83,7 +84,7 @@ def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size):
     selected = sorted(list(selected))
 
     # Create a new document with selected pages
-    new_doc = fitz.Document()
+    new_doc = fitz.open()  # Updated to use open() instead of Document()
     for i in selected:
         new_doc.insert_pdf(doc, from_page=i, to_page=i)
 
@@ -103,6 +104,28 @@ def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size):
 
 
 def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN: int = 10, lastN: int = 10, reduce_size: bool = True) -> Dict:
+    """Process multiple PDF files in a folder by extracting first and last N pages.
+
+    Args:
+        input_folder (str): Path to the folder containing input PDF files
+        output_folder (str, optional): Path to save output files. If None, creates 'reduced' subfolder in input_folder
+        firstN (int, optional): Number of pages to extract from start of each PDF. Defaults to 10
+        lastN (int, optional): Number of pages to extract from end of each PDF. Defaults to 10
+        reduce_size (bool, optional): Whether to compress output PDFs. Defaults to True
+
+    Returns:
+        Dict: Statistics about the processing including:
+            - totalFiles: Number of PDF files found
+            - processedFiles: Number of files successfully processed
+            - errors: Number of files that failed processing
+            - duration_seconds: Total processing time
+            - output_folder: Path where output files were saved
+            - log_messages: List of processing status messages
+            - processing_details: Per-file processing information
+
+    Raises:
+        HTTPException: If input_folder doesn't exist or other processing errors occur
+    """
     start_time = datetime.now()
 
     # Initialize statistics with default output folder
