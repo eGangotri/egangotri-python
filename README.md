@@ -4,7 +4,7 @@ Python/Fast API Codebase for eGangotri
 # First Time after Git clone
 python -m venv venv
 pip install -r requirements.txt
-
+pip install uvicorn
 # after every new library imported
 pip freeze > requirements.txt
 # to run

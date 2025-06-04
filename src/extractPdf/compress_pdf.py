@@ -1,5 +1,3 @@
-import fitz  # PyMuPDF
-from PyPDF2 import PdfReader, PdfWriter
 import os
 import subprocess
 import shutil
