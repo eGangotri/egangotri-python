@@ -333,7 +333,7 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
         # Add metadata to improve PDF compliance
         doc.set_metadata({
             "creator": "- PDF Generator",
-            "producer": "PyMuPDF",
+            "producer": "Fitz",
             "title": folder_name,
             "creationDate": fitz.get_pdf_now(),
             "modDate": fitz.get_pdf_now()

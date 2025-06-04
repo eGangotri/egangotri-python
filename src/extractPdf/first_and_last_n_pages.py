@@ -1,11 +1,18 @@
-import fitz  # PyMuPDF
+"""Module for extracting and combining first and last N pages from PDF files.
+
+This module provides functionality to:
+- Extract a specified number of pages from the beginning and end of PDF files
+- Process multiple PDFs in a directory
+- Optionally compress the resulting PDFs using ghostscript
+- Support both PyPDF2 and PyMuPDF (fallback) for PDF processing
+"""
+
 import os
 import argparse
 import json
-import io
-from typing import List, Dict
-from fastapi import HTTPException
+from typing import Dict
 from datetime import datetime
+from fastapi import HTTPException
 from PyPDF2 import PdfReader, PdfWriter
 
 from src.extractPdf.compress_pdf import _compress_with_ghostscript
@@ -21,7 +28,7 @@ def extract_first_and_last_n_pages(input_pdf: str, output_pdf: str, firstN: int 
         print("Using PyPDF2/ghostscript for extraction and compression...")
         return _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size)
     except Exception as e:
-        print(f"PyPDF2 approach failed, falling back to PyMuPDF: {str(e)}")
+        print("PyPDF2 approach failed, falling back to PyMuPDF: %s", str(e))
         return _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size)
 
 
@@ -32,7 +39,7 @@ def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
         writer = PdfWriter()
 
         total_pages = len(reader.pages)
-        print(f"Total pages in original PDF: {total_pages}")
+        print("Total pages in original PDF: %d", total_pages)
 
         # Calculate pages to include
         first_indices = range(min(firstN, total_pages))
@@ -40,7 +47,7 @@ def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
         selected = set(list(first_indices) + list(last_indices))
         selected = sorted(list(selected))
 
-        print(f"Selected {len(selected)} pages from {total_pages} total pages")
+        print("Selected %d pages from %d total pages", len(selected), total_pages)
 
         # Add selected pages to the new PDF
         for i in selected:
@@ -48,7 +55,7 @@ def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
 
         # Apply compression if requested
         if reduce_size:
-            print(f"Applying PDF compression to improve file size...")
+            print("Applying PDF compression to improve file size...")
             # Activate compression on every page
             # for page in writer.pages:
             #     page.compress_content_streams()  # This applies compression to content streams
@@ -66,7 +73,7 @@ def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
 
 def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size):
     """Extract using PyMuPDF as a fallback method."""
-    doc = fitz.open(input_pdf)
+    doc = fitz.Document(input_pdf)
     total_pages = len(doc)
 
     # Calculate pages to include
@@ -76,7 +83,7 @@ def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size):
     selected = sorted(list(selected))
 
     # Create a new document with selected pages
-    new_doc = fitz.open()
+    new_doc = fitz.Document()
     for i in selected:
         new_doc.insert_pdf(doc, from_page=i, to_page=i)
 
