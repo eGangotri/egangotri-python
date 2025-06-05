@@ -380,10 +380,13 @@ def process_images_to_pdf(folder_path: str, output_path: str, img_type: ImageTyp
             garbage=4,           # Maximum cleanup level
             deflate=True,        # Use deflate compression
             clean=True,          # Clean content streams
-            linear=True,         # Linearize PDF for web optimization
             pretty=False,        # Don't use pretty format (more compact)
             ascii=False,         # Use binary format for smaller files
             expand=False,        # Don't expand objects to improve compatibility
+            encryption=fitz.PDF_ENCRYPT_KEEP,  # Preserve any existing encryption
+            incremental=False,   # Don't use incremental updates
+            deflate_images=True, # Compress images
+            deflate_fonts=True   # Compress fonts
         )
         doc.close()
         
