@@ -5,9 +5,8 @@ from src.extractPdf.first_and_last_n_pages import process_pdfs_in_folder
 from src.copyFiles import copy_all_pdfs
 from typing import Optional, List, Dict
 from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
-from src.routes.img_folder_to_pdf import router as folder_analysis_router
-from src.routes.pdf_merge import router as pdf_merge_router
 from src.utils.print_logger import PrintLogger
+from src.routes.img_to_pdf import img_folder_router, verify_router, pdf_merge_router
 import os
 
 # Initialize print logging
@@ -77,8 +76,9 @@ class BulkUploadPdfRequest(BaseModel):
         return self
 
 app = FastAPI()
-app.include_router(folder_analysis_router, tags=["folder-analysis"])
+app.include_router(img_folder_router, tags=["img-folder-to-pdf"])
 app.include_router(pdf_merge_router, tags=["pdf-operations"])
+app.include_router(verify_router, tags=["verify-img-to-pdf"])
 
 
 @app.get("/")
