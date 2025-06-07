@@ -12,6 +12,6 @@ MONGO_SERVICE_URL = f"http://{MONGO_SERVICE_HOST}:{MONGO_SERVICE_PORT}"
 
 # API endpoints
 API_ENDPOINTS = {
-    'create_entry': f"{MONGO_SERVICE_URL}/createImgToPdfEntry",
-    'update_entry': f"{MONGO_SERVICE_URL}/updateImgToPdfEntry"
+    'create_entry': f"{MONGO_SERVICE_URL}/imgToPdf/createImgToPdfEntry",
+    'update_entry': f"{MONGO_SERVICE_URL}/imgToPdf/updateImgToPdfEntry"
 }
