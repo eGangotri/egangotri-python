@@ -2,6 +2,8 @@ import os
 import time
 import json
 import psutil
+import logging
+import requests
 from enum import Enum
 from typing import List, Dict, Set, Optional
 from fastapi import APIRouter, HTTPException
@@ -16,6 +18,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from src.utils.image_constants import ImageType, get_extensions_for_type
+from src.config import API_ENDPOINTS
 
 router = APIRouter()
 
@@ -496,6 +499,30 @@ def verfiyImgtoPdf_route(request: FolderAnalysisRequest):
         print(f"\n[X] Error during verification: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+def update_mongo_report(mongo_id: str, report: dict) -> bool:
+    """Update the MongoDB document with the latest report status."""
+    if not mongo_id:
+        logging.warning("Cannot update MongoDB: No document ID available")
+        return False
+        
+    try:
+        response = requests.post(
+            API_ENDPOINTS['update_entry'],
+            json={'id': mongo_id, 'report': report},
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        if response.ok:
+            logging.info("Successfully updated MongoDB document: %s", mongo_id)
+            return True
+        else:
+            logging.error("Failed to update MongoDB document %s: %s - %s", 
+                         mongo_id, response.status_code, response.text)
+            return False
+    except Exception as e:
+        logging.error("Error updating MongoDB document %s: %s", mongo_id, str(e))
+        return False
+
 @router.post("/convert-img-folder-to-pdf")
 def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     """Process a folder and convert images to PDFs."""
@@ -506,52 +533,102 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     # Initialize report
     report = {
         'total_folders': 0,
-        'folders_with_images': 0,
-        'pdfs_created': 0,
-        'pdfs_skipped': 0,
-        'processed_folders': [],
-        'multi_type_folders': [],
-        'errors': [],
-        'error_count': 0,
-        'failed_images_count': 0,
-        'successful_images_count': 0,
-        'time_taken_seconds': 0,
-        'pdf_count_matches_folders': False,
-        'error_types': {},
+        'folders_detail': [],  # Array of objects with detailed folder processing info
+        'summary': {
+            'folders_with_images': 0,
+            'pdfs_created': 0,
+            'pdfs_skipped': 0,
+            'error_count': 0,
+            'failed_images_count': 0,
+            'successful_images_count': 0,
+            'time_taken_seconds': 0
+        },
         'memory_stats': {
             'initial_mb': initial_memory,
             'peak_mb': initial_memory,
             'final_mb': 0,
             'net_change_mb': 0
+        },
+        'mongo_doc_id': None,  # To store the MongoDB document ID
+        'paths': {
+            'source': os.path.abspath(request.src_folder),
+            'destination': os.path.abspath(request.dest_folder) if request.dest_folder else request.src_folder
         }
     }
     
     try:
+        src_folder = report['paths']['source']
+        dest_folder = report['paths']['destination'] or src_folder
+
         # Validate source folder
-        if not os.path.exists(request.src_folder):
+        if not os.path.exists(src_folder):
             raise HTTPException(status_code=404, detail="Source folder does not exist")
-        if not os.path.isdir(request.src_folder):
+        if not os.path.isdir(src_folder):
             raise HTTPException(status_code=400, detail="Source path must be a directory")
-            
-        # Normalize paths
-        src_folder = os.path.normpath(request.src_folder)
-        if request.dest_folder:
-            dest_folder = os.path.normpath(request.dest_folder)
-            # Create destination folder if it doesn't exist
+
+        # Create destination folder if it doesn't exist and is different from source
+        if dest_folder != src_folder:
             try:
                 os.makedirs(dest_folder, exist_ok=True)
-                print(f"Destination folder ready: {dest_folder}")
+                logging.info("Destination folder ready: %s", dest_folder)
             except Exception as e:
                 raise HTTPException(status_code=500, detail=f"Failed to create destination folder: {str(e)}")
-        else:
-            dest_folder = src_folder
             
         print("\nScanning folders...")
-        # First count total processable folders
-        total_folders = sum(1 for root, _, _ in os.walk(src_folder) 
-                          if not os.path.basename(root).startswith('.') and 
-                          any(has_image_files(root, img_type) for img_type in [request.img_type]))
+        # First collect all folders and their details
+        processable_folders = []
+        for root, _, files in os.walk(src_folder):
+            if os.path.basename(root).startswith('.'):
+                continue
+
+            abs_path = os.path.abspath(root)
+            folder_info = {
+                'folder_path': abs_path,
+                'has_images': False,
+                'image_count': 0,
+                'pdf_generated': False,
+                'pdf_path': '',
+                'pdf_page_count': 0,
+                'pages_match_images': False,
+                'errors': [],
+                'error_count': 0,
+                'status': 'pending'
+            }
+
+            # Count images of requested type
+            image_files = [f for f in files if f.lower().endswith(f'.{request.img_type}')]
+            if image_files:
+                folder_info['has_images'] = True
+                folder_info['image_count'] = len(image_files)
+                processable_folders.append(root)
+                report['summary']['folders_with_images'] += 1
+
+            report['folders_detail'].append(folder_info)
         
+        total_folders = len(processable_folders)
+        report['total_folders'] = len(report['folders_detail'])
+        
+        # Send initial report data to the REST service
+        try:
+            logging.info("Sending report data to REST service")
+            response = requests.post(
+                API_ENDPOINTS['create_entry'],
+                json=report,
+                headers={'Content-Type': 'application/json'},
+                timeout=30  # Add timeout to avoid hanging
+            )
+            if response.ok:
+                response_data = response.json()
+                if 'id' in response_data:
+                    report['mongo_doc_id'] = response_data['id']
+                    logging.info("Successfully stored MongoDB document ID: %s", report['mongo_doc_id'])
+                else:
+                    logging.warning("Response missing MongoDB document ID")
+            else:
+                logging.warning("Failed to send report data to REST service: %s - %s", response.status_code, response.text)
+        except Exception as e:
+            logging.error("Error sending report data to REST service: %s", str(e))
+
         current_folder = 0
         for root, dirs, files in os.walk(src_folder):
             try:
@@ -567,7 +644,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                     continue
                     
                 current_folder += 1
-                report['total_folders'] += 1
+                report['summary']['folders_with_images'] += 1
                 
                 # Determine output path
                 if request.dest_folder:
@@ -606,13 +683,24 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                         total_folders=total_folders
                     )
                     
+                    # Update folder info in the report
+                    folder_info = next(info for info in report['folders_detail'] if info['folder_path'] == os.path.abspath(root))
+                    folder_info['pdf_path'] = result.get('pdf_path', '')
+                    folder_info['pdf_page_count'] = result.get('page_count', 0)
+                    folder_info['pages_match_images'] = folder_info['pdf_page_count'] == folder_info['image_count']
+                    
                     if result['success']:
+                        folder_info['status'] = 'success'
+                        folder_info['pdf_generated'] = True
                         if result['skipped']:
-                            report['pdfs_skipped'] += 1
+                            report['summary']['pdfs_skipped'] += 1
                         else:
-                            report['pdfs_created'] += 1
-                            report['successful_images_count'] += result['image_count']
-                            report['failed_images_count'] += 0  # No failed images tracked in this version
+                            report['summary']['pdfs_created'] += 1
+                        report['summary']['successful_images_count'] += result['image_count']
+                        report['summary']['failed_images_count'] += 0  # No failed images tracked in this version
+                        
+                        # Update MongoDB with success status
+                        update_mongo_report(report['mongo_doc_id'], report)
                             
                         folder_result = {
                             'folder': root,
@@ -626,24 +714,31 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                         
                     else:
                         error_msg = result['error']
-                        print(f"[X] Error in folder {rel_path}: {error_msg}")
+                        logging.error("Error in folder %s: %s", rel_path, error_msg)
                         
-                        report['errors'].append({
-                            'folder': root,
-                            'error': error_msg
-                        })
-                        report['error_count'] += 1
-                        report['failed_images_count'] += 0  # No failed images tracked in this version
+                        # Update folder info with error details
+                        folder_info = next(info for info in report['folders_detail'] if info['folder_path'] == os.path.abspath(root))
+                        folder_info['errors'].append(error_msg)
+                        folder_info['error_count'] += 1
+                        folder_info['status'] = 'error'
+                        report['summary']['error_count'] += 1
                         
+                        # Update MongoDB with error status
+                        update_mongo_report(report['mongo_doc_id'], report)
                 except Exception as e:
-                    error_msg = f"Error processing folder: {str(e)}"
-                    print(f"[X] Error in folder {rel_path}: {error_msg}")
+                    error_msg = f"Error processing folder {root}: {str(e)}"
+                    logging.error("Error: %s", error_msg)
                     
-                    report['errors'].append({
-                        'folder': root,
-                        'error': error_msg
-                    })
-                    report['error_count'] += 1
+                    # Update folder info with error details
+                    folder_info = next(info for info in report['folders_detail'] if info['folder_path'] == os.path.abspath(root))
+                    folder_info['errors'].append(error_msg)
+                    folder_info['error_count'] += 1
+                    folder_info['status'] = 'error'
+                    
+                    report['summary']['error_count'] += 1
+                    
+                    # Update MongoDB with error status
+                    update_mongo_report(report['mongo_doc_id'], report)
                     continue
                     
             except Exception as e:
@@ -691,7 +786,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     
     # Calculate final statistics
     report['time_taken_seconds'] = time.time() - start_time
-    report['pdf_count_matches_folders'] = report['pdfs_created'] == report['folders_with_images']
+    report['summary']['pdf_count_matches_folders'] = report['summary']['pdfs_created'] == report['summary']['folders_with_images']
     
     # Print final report
     print("\n[*] Final Report:")
