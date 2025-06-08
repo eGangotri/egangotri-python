@@ -1,6 +1,13 @@
 # egangotri-python
 Python/Fast API Codebase for eGangotri
 
+## Setup
+in .env file add
+# MongoDB Service Configuration
+MONGO_SERVICE_HOST=localhost
+MONGO_SERVICE_PORT=8000
+
+
 # First Time after Git clone
 python -m venv venv
 pip install -r requirements.txt
