@@ -15,6 +15,9 @@ pip install uvicorn
 # after every new library imported
 pip freeze > requirements.txt
 # to run
+# without reload
+python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 
+
 python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --reload
 
 ### for 30 min. timeout
