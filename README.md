@@ -23,9 +23,11 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --reload
 ### for 30 min. timeout
 
 uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 1800
+OR 
+python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 1800
 
 ### For debug
-uvicorn src.main:app --reload --log-level debug
+python -m uvicorn src.main:app --reload --log-level debug
 # My FastAPI App
 
 # To use ghostscript for pdf reduction 
