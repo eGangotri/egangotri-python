@@ -129,8 +129,8 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
     start_time = datetime.now()
 
     # Initialize statistics with default output folder
-    default_output = os.path.join(
-        input_folder, REDUCED_FOLDER) if output_folder is None else output_folder
+    # If output_folder is provided, use it directly. Otherwise, use '<input_folder>/reduced'
+    default_output = output_folder if output_folder is not None else os.path.join(input_folder, REDUCED_FOLDER)
 
     stats = {
         "totalFiles": 0,
@@ -179,11 +179,16 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
             datetime.now() - start_time).total_seconds()
         return stats
 
-    # Setup output folder with count
+    # Setup output folder
+    # Only append '<last_folder_name>(count)' when using the default reduced folder.
+    # If a custom output_folder is provided, do NOT append the input folder name to avoid duplication.
     last_folder_name = os.path.basename(os.path.normpath(input_folder))
     folder_with_count = f"{last_folder_name}({stats['totalFiles']})"
 
-    final_output = os.path.join(default_output, folder_with_count)
+    if output_folder is None:
+        final_output = os.path.join(default_output, folder_with_count)
+    else:
+        final_output = default_output
     stats["output_folder"] = final_output
     os.makedirs(final_output, exist_ok=True)
 
@@ -232,25 +237,25 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
                 msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name.replace(UNCOMPRESSED_SUFFIX, '')}{size_info}"
                 print(msg)
 
-                # Only attempt compression if extraction was successful and reduce_size is True
-                if reduce_size and os.path.exists(output_pdf) and os.path.getsize(output_pdf) > 0:
-                    compressed_pdf = output_pdf.replace(UNCOMPRESSED_SUFFIX, '')
-                    try:
-                        _compress_with_ghostscript(
-                            output_pdf, compressed_pdf)
-                        new_size2 = os.path.getsize(
-                            compressed_pdf) / (1024 * 1024)
-                        msg2 = f"✅ ( Post compression size of {compressed_pdf} {new_size2:.2f} MB)"
+                # # Only attempt compression if extraction was successful and reduce_size is True
+                # if reduce_size and os.path.exists(output_pdf) and os.path.getsize(output_pdf) > 0:
+                #     compressed_pdf = output_pdf.replace(UNCOMPRESSED_SUFFIX, '')
+                #     try:
+                #         _compress_with_ghostscript(
+                #             output_pdf, compressed_pdf)
+                #         new_size2 = os.path.getsize(
+                #             compressed_pdf) / (1024 * 1024)
+                #         msg2 = f"✅ ( Post compression size of {compressed_pdf} {new_size2:.2f} MB)"
                         
-                        print(msg2)
+                #         print(msg2)
                         
-                        # Delete the uncompressed output PDF after successful compression
-                        if os.path.exists(output_pdf) and os.path.exists(compressed_pdf):
-                            os.remove(output_pdf)
-                            print(f"🗑️ Deleted uncompressed file: {os.path.basename(output_pdf)}")
-                    except Exception as e:
-                        print(f"Warning: Compression steps failed: {str(e)}")
-                        # Continue with the uncompressed version
+                #         # Delete the uncompressed output PDF after successful compression
+                #         if os.path.exists(output_pdf) and os.path.exists(compressed_pdf):
+                #             os.remove(output_pdf)
+                #             print(f"🗑️ Deleted uncompressed file: {os.path.basename(output_pdf)}")
+                #     except Exception as e:
+                #         print(f"Warning: Compression steps failed: {str(e)}")
+                #         # Continue with the uncompressed version
 
             except Exception as e:
                 error_msg = f"❌ Error extracting pages from {file}: {str(e)}"
