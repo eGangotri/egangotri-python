@@ -13,12 +13,13 @@ class ImageConversionRequest(BaseModel):
     src_folder: str
     dest_folder: str
     img_type: ImageType = ImageType.ANY
-
+    commonRunId: Optional[str] = None
 
 class FolderAnalysisRequest(BaseModel):
     src_folder: str
     dest_folder: Optional[str] = None
     img_type: ImageType = ImageType.ANY
+    commonRunId: Optional[str] = None
 
 
 def has_image_files(folder_path: str, img_type: ImageType) -> bool:

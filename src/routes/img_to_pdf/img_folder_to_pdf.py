@@ -125,6 +125,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     
     # Initialize report
     report = {
+        'commonRunId': request.commonRunId,
         'total_folders': 0,
         'folders_detail': [],  # Array of objects with detailed folder processing info
         'total_folders_including_empty': 0,
@@ -221,6 +222,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
         report['summary']['folders_with_images'] = sum(1 for f in processable_folders if f['has_images'])
         report['folders_detail'] = processable_folders
         report['total_folders_including_empty'] = total_folders_including_empty
+        report['commonRunId'] = request.commonRunId
         logging.info("Starting PDF generation for %d folders", total_folders)
         
         # Send initial report data to the REST service

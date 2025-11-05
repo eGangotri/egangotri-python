@@ -103,11 +103,7 @@ def verfiyImgtoPdf(src_path: str, dest_path: str, img_type: ImageType):
                 
                 # Validate PDF and check page count
                 try:
-                    # First validate with PdfReader
-                    with open(expected_pdf, 'rb') as pdf_file:
-                        PdfReader(pdf_file)
-                    
-                    # Then check page count with fitz
+                    # Check page count with fitz (also validates PDF)
                     with fitz.open(expected_pdf) as pdf_doc:
                         pdf_page_count = len(pdf_doc)
                         print(f"  [*] Found PDF with {pdf_page_count} pages")
