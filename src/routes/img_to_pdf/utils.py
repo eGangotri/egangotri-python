@@ -152,6 +152,7 @@ def print_json_report(report: dict):
         'processing_time_seconds': report.get('processing_time_seconds', 0),
         'stats': {
             'total_folders': report.get('total_folder_count', 0),
+            'total_folders_including_empty': report.get('total_folders_including_empty', 0),
             'folders_with_images': report.get('folders_with_images', 0),
             'total_images': report.get('total_image_count', 0),
             'pdfs_verified': report.get('total_pdf_count', 0),

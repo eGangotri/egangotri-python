@@ -127,6 +127,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     report = {
         'total_folders': 0,
         'folders_detail': [],  # Array of objects with detailed folder processing info
+        'total_folders_including_empty': 0,
         'summary': {
             'folders_with_images': 0,
             'pdfs_created': 0,
@@ -176,6 +177,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
         
         # First collect all folders and their details
         processable_folders = []
+        total_folders_including_empty = 0
         try:
             for root, _, files in os.walk(src_folder):
                 logging.info("Processing folder: %s", root)
@@ -202,12 +204,11 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
                 extensions = get_extensions_for_type(request.img_type)
                 image_files = [f for f in files if any(f.lower().endswith(ext.lower()) for ext in extensions)]
                 logging.info("Found %d images in folder: %s with extensions %s", len(image_files), abs_path, extensions)
-
+                total_folders_including_empty += 1
                 if image_files:
                     folder_info['has_images'] = True
                     folder_info['image_count'] = len(image_files)
                     processable_folders.append(folder_info)
-
         except Exception as e:
             logging.error("Error during folder walk: %s", str(e))
             raise HTTPException(status_code=500, detail=f"Failed to scan folders: {str(e)}")
@@ -219,7 +220,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
         report['total_folders'] = total_folders
         report['summary']['folders_with_images'] = sum(1 for f in processable_folders if f['has_images'])
         report['folders_detail'] = processable_folders
-        
+        report['total_folders_including_empty'] = total_folders_including_empty
         logging.info("Starting PDF generation for %d folders", total_folders)
         
         # Send initial report data to the REST service
@@ -401,6 +402,7 @@ def process_img_folder_to_pdf_route(request: FolderAnalysisRequest):
     print("\n[*] Final Report:")
     print(f"Time taken: {report.get('time_taken_seconds', 0):.2f} seconds")
     print(f"Total folders processed: {report.get('total_folders', 0)}")
+    print(f"Total folders including empty: {report.get('total_folders_including_empty', 0)}")
     print(f"Folders with images: {report.get('folders_with_images', 0)}")
     print(f"PDFs created: {report.get('pdfs_created', 0)}")
     print(f"PDFs skipped: {report.get('pdfs_skipped', 0)}")
