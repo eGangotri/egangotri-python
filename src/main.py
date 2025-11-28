@@ -18,7 +18,9 @@ class ExtractFromPdfRequest(BaseModel):
     nFirstPages: int = Field(..., description="Number of pages to extract from start", ge=0)
     nLastPages: int = Field(..., description="Number of pages to extract from end", ge=0)
     reducePdfSizeAlso: bool = Field(default=True, description="Whether to reduce the output PDF size to 70% of original")
-
+    commonRunId: Optional[str] = Field(default=None, description="Common run ID for tracking")
+    runId: Optional[str] = Field(default=None, description="Run ID for tracking")
+    
     @model_validator(mode='after')
     def validate_paths(self) -> 'ExtractFromPdfRequest':
         if not self.input_folder:
@@ -100,7 +102,9 @@ def extract_from_pdf(request: ExtractFromPdfRequest):
             request.output_folder, 
             request.nFirstPages, 
             request.nLastPages,
-            reduce_size=request.reducePdfSizeAlso
+            reduce_size=request.reducePdfSizeAlso,
+            commonRunId=request.commonRunId,
+            runId=request.runId
         )
         return ExtractFromPdfResponse(**result)
     except Exception as e:

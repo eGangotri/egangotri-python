@@ -10,7 +10,7 @@ This module provides functionality to:
 import os
 import argparse
 import json
-from typing import Dict
+from typing import Dict, Optional
 from datetime import datetime
 from fastapi import HTTPException
 from PyPDF2 import PdfReader, PdfWriter
@@ -21,19 +21,23 @@ from src.extractPdf.compress_pdf import _compress_with_ghostscript
 REDUCED_FOLDER = 'reduced'
 UNCOMPRESSED_SUFFIX = "_uncmprsd"
 
-def extract_first_and_last_n_pages(input_pdf: str, output_pdf: str, firstN: int = 10, lastN: int = 10, reduce_size: bool = True) -> None:
+def extract_first_and_last_n_pages(input_pdf: str, 
+output_pdf: str, firstN: int = 10, lastN: int = 10, 
+reduce_size: bool = True, commonRunId: Optional[str] = None,
+runId: Optional[str] = None ) -> None:
     """Extract first and last N pages from a PDF, with size reduction options."""
 
     # Try PyPDF2 for better compression
     try:
         print("Using PyPDF2/ghostscript for extraction and compression...")
-        return _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size)
+        return _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size, commonRunId, runId)
     except Exception as e:
         print("PyPDF2 approach failed, falling back to PyMuPDF: %s", str(e))
-        return _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size)
+        return _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size, commonRunId, runId)
 
 
-def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
+def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size, commonRunId: Optional[str] = None,
+runId: Optional[str] = None ):
     """Extract and compress using PyPDF2 library with more aggressive settings."""
     with open(input_pdf, 'rb') as file:
         reader = PdfReader(file)
@@ -72,7 +76,8 @@ def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size):
         return True
 
 
-def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size):
+def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size, commonRunId: Optional[str] = None,
+runId: Optional[str] = None ):
     """Extract using PyMuPDF as a fallback method."""
     doc = fitz.open(input_pdf)  # Updated to use open() instead of Document()
     total_pages = len(doc)
@@ -103,7 +108,11 @@ def _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size):
     return True
 
 
-def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN: int = 10, lastN: int = 10, reduce_size: bool = True) -> Dict:
+def process_pdfs_in_folder(input_folder: str, 
+output_folder: str = None, firstN: int = 10, lastN: int = 10,
+ reduce_size: bool = True,
+ commonRunId: Optional[str] = None,
+ runId: Optional[str] = None) -> Dict:
     """Process multiple PDF files in a folder by extracting first and last N pages.
 
     Args:
@@ -225,7 +234,8 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
 
             try:
                 extract_first_and_last_n_pages(
-                    input_pdf, output_pdf, firstN, lastN, reduce_size)
+                    input_pdf, output_pdf, firstN, lastN, 
+                    reduce_size, commonRunId, runId)
                 stats["processedFiles"] += 1
 
                 # Success message with size info
@@ -236,26 +246,6 @@ def process_pdfs_in_folder(input_folder: str, output_folder: str = None, firstN:
                 size_info = f" (Old Size: {original_size:.2f} MB, New Size: {new_size:.2f} MB)"
                 msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name.replace(UNCOMPRESSED_SUFFIX, '')}{size_info}"
                 print(msg)
-
-                # # Only attempt compression if extraction was successful and reduce_size is True
-                # if reduce_size and os.path.exists(output_pdf) and os.path.getsize(output_pdf) > 0:
-                #     compressed_pdf = output_pdf.replace(UNCOMPRESSED_SUFFIX, '')
-                #     try:
-                #         _compress_with_ghostscript(
-                #             output_pdf, compressed_pdf)
-                #         new_size2 = os.path.getsize(
-                #             compressed_pdf) / (1024 * 1024)
-                #         msg2 = f"✅ ( Post compression size of {compressed_pdf} {new_size2:.2f} MB)"
-                        
-                #         print(msg2)
-                        
-                #         # Delete the uncompressed output PDF after successful compression
-                #         if os.path.exists(output_pdf) and os.path.exists(compressed_pdf):
-                #             os.remove(output_pdf)
-                #             print(f"🗑️ Deleted uncompressed file: {os.path.basename(output_pdf)}")
-                #     except Exception as e:
-                #         print(f"Warning: Compression steps failed: {str(e)}")
-                #         # Continue with the uncompressed version
 
             except Exception as e:
                 error_msg = f"❌ Error extracting pages from {file}: {str(e)}"
@@ -315,8 +305,10 @@ if __name__ == "__main__":
                         help="Number of last pages to extract.")
     parser.add_argument("--no-reduce-size", action="store_true",
                         help="Disable PDF size reduction (enabled by default)")
+    parser.add_argument("--commonRunId", help="Common Run ID for tracking")
+    parser.add_argument("--runId", help="Run ID for tracking")
 
     args = parser.parse_args()
     result = process_pdfs_in_folder(
-        args.input_folder, args.output_folder, args.firstN, args.lastN, not args.no_reduce_size)
+        args.input_folder, args.output_folder, args.firstN, args.lastN, not args.no_reduce_size, args.commonRunId, args.runId)
     print(json.dumps(result, indent=4))
