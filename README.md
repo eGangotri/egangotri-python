@@ -16,15 +16,15 @@ pip install uvicorn
 pip freeze > requirements.txt
 # to run
 # without reload
-python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 1800
+python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 18000
 
-python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --reload --timeout-keep-alive 1800
+python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --reload --timeout-keep-alive 18000
 
 ### for 60 min. timeout
 
-uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 3600
+uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 36000
 OR 
-python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 3600
+python -m uvicorn src.main:app --host 0.0.0.0 --port 7000 --timeout-keep-alive 36000
 
 ### For debug
 python -m uvicorn src.main:app --reload --log-level debug
