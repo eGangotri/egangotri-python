@@ -7,6 +7,7 @@ from typing import Optional, List, Dict
 from src.cr2ToPdf.cr2Img2Jpg import convert_cr2_folder_to_jpg
 from src.utils.print_logger import PrintLogger
 from src.routes.img_to_pdf import img_folder_router, verify_router, pdf_merge_router
+from src.extractPdf.remove_acrobat_header_footer import remove_acrobat_headers_footers, process_folder_remove_headers_footers
 import os
 
 # Initialize print logging
@@ -77,6 +78,26 @@ class BulkUploadPdfRequest(BaseModel):
             raise ValueError(f"'{self.directory_path}' is not a directory")
         return self
 
+class RemoveAcrobatHeaderFooterRequest(BaseModel):
+    input_pdf: str = Field(..., description="Absolute path to the input PDF file")
+    output_pdf: Optional[str] = Field(default=None, description="Absolute path to the output PDF file")
+
+    @model_validator(mode='after')
+    def validate_input_exists(self) -> 'RemoveAcrobatHeaderFooterRequest':
+        if not os.path.exists(self.input_pdf):
+            raise ValueError(f"Input file '{self.input_pdf}' does not exist")
+        return self
+
+class BulkRemoveAcrobatHeaderFooterRequest(BaseModel):
+    input_folder: str = Field(..., description="Path to the input folder containing PDFs")
+    output_folder: Optional[str] = Field(default=None, description="Path to the output folder (optional)")
+
+    @model_validator(mode='after')
+    def validate_input_folder(self) -> 'BulkRemoveAcrobatHeaderFooterRequest':
+        if not os.path.exists(self.input_folder):
+            raise ValueError(f"Input path '{self.input_folder}' does not exist")
+        return self
+
 app = FastAPI()
 app.include_router(img_folder_router, tags=["img-folder-to-pdf"])
 app.include_router(pdf_merge_router, tags=["pdf-operations"])
@@ -140,3 +161,38 @@ def convertCr2ToJpgs(request: CR2ToPdfRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/removeAcrobatHeaderFooter")
+def remove_acrobat_header_footer_endpoint(request: RemoveAcrobatHeaderFooterRequest):
+    """
+    RESTful POST endpoint to remove Adobe Acrobat headers and footers from a local PDF file.
+    """
+    try:
+        # If output_pdf is not provided, the function handles creating a '_cleaned' version
+        remove_acrobat_headers_footers(request.input_pdf, request.output_pdf)
+        
+        # Determine the final output path for the response message
+        final_output = request.output_pdf
+        if not final_output:
+            base, ext = os.path.splitext(request.input_pdf)
+            final_output = f"{base}_cleaned{ext}"
+            
+        return {
+            "status": "success",
+            "message": f"Successfully processed {request.input_pdf}",
+            "output_file": final_output
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bulkRemoveAcrobatHeaderFooter", response_model=ExtractFromPdfResponse)
+def bulk_remove_acrobat_header_footer_endpoint(request: BulkRemoveAcrobatHeaderFooterRequest):
+    """
+    RESTful POST endpoint to recursively remove Adobe Acrobat headers and footers from all PDFs in a folder.
+    Maintains original folder structure.
+    """
+    try:
+        result = process_folder_remove_headers_footers(request.input_folder, request.output_folder)
+        return ExtractFromPdfResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
