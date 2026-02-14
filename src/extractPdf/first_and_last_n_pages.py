@@ -19,21 +19,52 @@ import fitz  # PyMuPDF 1.26.0
 from src.extractPdf.compress_pdf import _compress_with_ghostscript
 
 REDUCED_FOLDER = 'reduced'
-UNCOMPRESSED_SUFFIX = "_uncmprsd"
+# Suffix for temporary files during processing
+TEMP_SUFFIX = "_temp"
 
 def extract_first_and_last_n_pages(input_pdf: str, 
-output_pdf: str, firstN: int = 10, lastN: int = 10, 
-reduce_size: bool = True, commonRunId: Optional[str] = None,
-runId: Optional[str] = None ) -> None:
+                        output_pdf: str, firstN: int = 10, lastN: int = 10, 
+                        reduce_size: bool = True, commonRunId: Optional[str] = None,
+                        runId: Optional[str] = None ) -> None:
     """Extract first and last N pages from a PDF, with size reduction options."""
+    
+    # We'll use a temporary path for the extraction if we plan to compress it later
+    extraction_target = output_pdf
+    if reduce_size:
+        base, ext = os.path.splitext(output_pdf)
+        extraction_target = f"{base}_temp_extract{ext}"
 
-    # Try PyPDF2 for better compression
+    # Try PyPDF2 for extraction
+    success = False
     try:
-        print("Using PyPDF2/ghostscript for extraction and compression...")
-        return _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size, commonRunId, runId)
+        print(f"Using PyPDF2 for extraction: {os.path.basename(input_pdf)}")
+        success = _extract_with_pypdf2(input_pdf, extraction_target, firstN, lastN, reduce_size, commonRunId, runId)
     except Exception as e:
-        print("PyPDF2 approach failed, falling back to PyMuPDF: %s", str(e))
-        return _extract_with_pymupdf(input_pdf, output_pdf, firstN, lastN, reduce_size, commonRunId, runId)
+        print(f"PyPDF2 approach failed, falling back to PyMuPDF: {str(e)}")
+        success = _extract_with_pymupdf(input_pdf, extraction_target, firstN, lastN, reduce_size, commonRunId, runId)
+
+    if not success:
+        raise Exception("Failed to extract pages from PDF")
+
+    # Apply Ghostscript compression if requested
+    if reduce_size:
+        print(f"Applying Ghostscript compression to {os.path.basename(output_pdf)}...")
+        compression_success = _compress_with_ghostscript(extraction_target, output_pdf)
+        
+        # Clean up the temporary extraction file
+        if os.path.exists(extraction_target):
+            try:
+                os.remove(extraction_target)
+            except Exception as e:
+                print(f"Warning: Could not remove temporary file {extraction_target}: {str(e)}")
+        
+        if not compression_success:
+            print("Ghostscript compression was not successful or not available. Using extracted version.")
+            if not os.path.exists(output_pdf): # If _compress didn't even create the output
+                import shutil
+                shutil.copy(extraction_target, output_pdf)
+    
+    return True
 
 
 def _extract_with_pypdf2(input_pdf, output_pdf, firstN, lastN, reduce_size, commonRunId: Optional[str] = None,
@@ -44,7 +75,7 @@ runId: Optional[str] = None ):
         writer = PdfWriter()
 
         total_pages = len(reader.pages)
-        print("Total pages in original PDF: %d", total_pages)
+        print(f"Total pages in original PDF: {total_pages}")
 
         # Calculate pages to include
         first_indices = range(min(firstN, total_pages))
@@ -52,7 +83,7 @@ runId: Optional[str] = None ):
         selected = set(list(first_indices) + list(last_indices))
         selected = sorted(list(selected))
 
-        print("Selected %d pages from %d total pages", len(selected), total_pages)
+        print(f"Selected {len(selected)} pages from {total_pages} total pages")
 
         # Add selected pages to the new PDF
         for i in selected:
@@ -219,13 +250,19 @@ output_folder: str = None, firstN: int = 10, lastN: int = 10,
                 page_count = 0  # Default if we can't read it
 
             base_name, ext = os.path.splitext(file)
-            new_file_name = f"{base_name}_{page_count:04d}{UNCOMPRESSED_SUFFIX}{ext}"
+            new_file_name = f"{base_name}_{page_count:04d}{ext}"
 
             # Maintain the original folder structure
             relative_path = os.path.relpath(root, input_folder)
-            output_subfolder = os.path.join(final_output, relative_path)
+            if relative_path == ".":
+                output_subfolder = final_output
+            else:
+                output_subfolder = os.path.join(final_output, relative_path)
+                
+            output_subfolder = os.path.normpath(output_subfolder)
             os.makedirs(output_subfolder, exist_ok=True)
             output_pdf = os.path.join(output_subfolder, new_file_name)
+            output_pdf = os.path.normpath(output_pdf)
 
             # Progress message before processing
             msg = f"⏳ ({idx}/{stats['totalFiles']}) Processing: {file} ({page_count} pages)"
@@ -244,7 +281,7 @@ output_folder: str = None, firstN: int = 10, lastN: int = 10,
                 new_size = os.path.getsize(
                     output_pdf) / (1024 * 1024)  # Convert to MB
                 size_info = f" (Old Size: {original_size:.2f} MB, New Size: {new_size:.2f} MB)"
-                msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name.replace(UNCOMPRESSED_SUFFIX, '')}{size_info}"
+                msg = f"✅ ({idx}/{stats['totalFiles']}) Completed: {file} -> {new_file_name}{size_info}"
                 print(msg)
 
             except Exception as e:

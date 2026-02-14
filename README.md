@@ -78,3 +78,10 @@ Visit `http://127.0.0.1:8000` in your browser to access the application. The int
 ## Contributing
 
 Feel free to submit issues or pull requests to improve the project.
+
+GhostScript
+https://ghostscript.com/releases/gsdnld.html
+
+install gs10060w64.exe
+check installation
+ gswin64c --version
