@@ -25,7 +25,7 @@ TEMP_SUFFIX = "_temp"
 def extract_first_and_last_n_pages(input_pdf: str, 
                         output_pdf: str, firstN: int = 10, lastN: int = 10, 
                         reduce_size: bool = True, commonRunId: Optional[str] = None,
-                        runId: Optional[str] = None ) -> None:
+                        runId: Optional[str] = None, compression_level: Optional[str] = None ) -> None:
     """Extract first and last N pages from a PDF, with size reduction options."""
     
     # We'll use a temporary path for the extraction if we plan to compress it later
@@ -49,7 +49,7 @@ def extract_first_and_last_n_pages(input_pdf: str,
     # Apply Ghostscript compression if requested
     if reduce_size:
         print(f"Applying Ghostscript compression to {os.path.basename(output_pdf)}...")
-        compression_success = _compress_with_ghostscript(extraction_target, output_pdf)
+        compression_success = _compress_with_ghostscript(extraction_target, output_pdf, compression_level)
         
         # Clean up the temporary extraction file
         if os.path.exists(extraction_target):
@@ -143,7 +143,7 @@ def process_pdfs_in_folder(input_folder: str,
 output_folder: str = None, firstN: int = 10, lastN: int = 10,
  reduce_size: bool = True,
  commonRunId: Optional[str] = None,
- runId: Optional[str] = None) -> Dict:
+ runId: Optional[str] = None, compression_level: Optional[str] = None) -> Dict:
     """Process multiple PDF files in a folder by extracting first and last N pages.
 
     Args:
@@ -272,7 +272,7 @@ output_folder: str = None, firstN: int = 10, lastN: int = 10,
             try:
                 extract_first_and_last_n_pages(
                     input_pdf, output_pdf, firstN, lastN, 
-                    reduce_size, commonRunId, runId)
+                    reduce_size, commonRunId, runId, compression_level)
                 stats["processedFiles"] += 1
 
                 # Success message with size info
@@ -344,8 +344,9 @@ if __name__ == "__main__":
                         help="Disable PDF size reduction (enabled by default)")
     parser.add_argument("--commonRunId", help="Common Run ID for tracking")
     parser.add_argument("--runId", help="Run ID for tracking")
+    parser.add_argument("--compression-level", help="Ghostscript compression level (e.g., screen, ebook)")
 
     args = parser.parse_args()
     result = process_pdfs_in_folder(
-        args.input_folder, args.output_folder, args.firstN, args.lastN, not args.no_reduce_size, args.commonRunId, args.runId)
+        args.input_folder, args.output_folder, args.firstN, args.lastN, not args.no_reduce_size, args.commonRunId, args.runId, args.compression_level)
     print(json.dumps(result, indent=4))

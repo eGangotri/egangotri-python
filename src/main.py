@@ -21,6 +21,7 @@ class ExtractFromPdfRequest(BaseModel):
     reducePdfSizeAlso: bool = Field(default=True, description="Whether to reduce the output PDF size to 70% of original")
     commonRunId: Optional[str] = Field(default=None, description="Common run ID for tracking")
     runId: Optional[str] = Field(default=None, description="Run ID for tracking")
+    compressionLevel: Optional[str] = Field(default=None, description="Ghostscript compression level (e.g., screen, ebook)")
     
     @model_validator(mode='after')
     def validate_paths(self) -> 'ExtractFromPdfRequest':
@@ -125,7 +126,8 @@ def extract_from_pdf(request: ExtractFromPdfRequest):
             request.nLastPages,
             reduce_size=request.reducePdfSizeAlso,
             commonRunId=request.commonRunId,
-            runId=request.runId
+            runId=request.runId,
+            compression_level=request.compressionLevel
         )
         return ExtractFromPdfResponse(**result)
     except Exception as e:

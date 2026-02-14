@@ -33,11 +33,23 @@ def _find_ghostscript():
                 
     return gs_exe # Fallback to default name
 
-def _compress_with_ghostscript(input_pdf, output_pdf):
+def _compress_with_ghostscript(input_pdf, output_pdf, compression_level=None):
     """
     Uses Ghostscript for better PDF compression if available.
     Returns True if successful, False otherwise.
     """
+    # Global Kill Switch via .env
+    if os.environ.get('DISABLE_PDF_COMPRESSION', '').lower() == 'true':
+        print(" PDF Compression is globally disabled via .env variable.")
+        return False
+
+    # Determine compression level: Parameter > Environment > Default ('/ebook')
+    if not compression_level:
+        compression_level = os.environ.get('PDF_COMPRESSION_LEVEL', '/ebook')
+        # Ensure it starts with '/'
+        if compression_level and not compression_level.startswith('/'):
+            compression_level = f"/{compression_level}"
+
     try:
         # Resolve absolute paths and normalize
         input_pdf = os.path.abspath(input_pdf)
@@ -52,9 +64,6 @@ def _compress_with_ghostscript(input_pdf, output_pdf):
             
         # Get original file size for comparison
         original_size = os.path.getsize(input_pdf) / (1024 * 1024)  # Size in MB
-        
-        # Try more aggressive compression settings
-        compression_level = '/screen'  # Options: /screen (smallest), /ebook, /printer, /prepress (highest quality)
         
         print(f"Attempting Ghostscript compression with level {compression_level}")
         print(f"Using Ghostscript at: {gs_command}")
