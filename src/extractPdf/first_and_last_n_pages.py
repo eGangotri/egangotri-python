@@ -314,7 +314,7 @@ output_folder: str = None, firstN: int = 10, lastN: int = 10,
     # Add final summary with emojis
     end_time = datetime.now()
     stats["duration_seconds"] = (end_time - start_time).total_seconds()
-    print("PDF Reduction Script completed after processing {idx}/{stats['totalFiles']} at {end_time}")
+    print(f"PDF Reduction Script completed after processing {idx}/{stats['totalFiles']} at {end_time}")
     summary = [
         f"📊 Processing Summary:",
         f"   • Total Files: {stats['totalFiles']}",
