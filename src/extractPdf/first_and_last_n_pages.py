@@ -314,7 +314,17 @@ output_folder: str = None, firstN: int = 10, lastN: int = 10,
     # Add final summary with emojis
     end_time = datetime.now()
     stats["duration_seconds"] = (end_time - start_time).total_seconds()
-    print(f"PDF Reduction Script completed after processing {idx}/{stats['totalFiles']} at {end_time}")
+
+    # Print list of failed items if there are any
+    if stats["errors"] > 0:
+        print(f"\n❌ List of Failed/Error Items ({stats['errors']}):")
+        for detail in stats["processing_details"]:
+            if detail["status"] == "error":
+                print(f"   • {detail['file']}: {detail['error']}")
+        print()
+
+    print(f"✅PDF Reduction Script completed after processing {idx}/{stats['totalFiles']} at {end_time}")
+
     summary = [
         f"📊 Processing Summary:",
         f"   • Total Files: {stats['totalFiles']}",
@@ -325,7 +335,16 @@ output_folder: str = None, firstN: int = 10, lastN: int = 10,
         f"   • Output Folder: {stats['output_folder']}"
     ]
 
+    if stats["errors"] > 0:
+        summary.append(f"❌ Failed Files List:")
+        for detail in stats["processing_details"]:
+            if detail["status"] == "error":
+                summary.append(f"   - {detail['file']}: {detail['error']}")
+    else:
+        summary.append(f"✅ No Error reported")
+
     stats["log_messages"].extend(summary)
+
     return stats
 
 
