@@ -167,7 +167,7 @@ def process_folder_remove_headers_footers(input_folder: str, output_folder: Opti
             })
 
     stats["duration_seconds"] = (datetime.now() - start_time).total_seconds()
-    
+    print(f"/process_folder_remove_headers_footers: {stats}")
     summary = [
         f"📊 Bulk Processing Summary:",
         f"   • Total Files: {stats['totalFiles']}",
