@@ -178,7 +178,6 @@ def remove_acrobat_header_footer_endpoint(request: RemoveAcrobatHeaderFooterRequ
         if not final_output:
             base, ext = os.path.splitext(request.input_pdf)
             final_output = f"{base}_cleaned{ext}"
-            
         return {
             "status": "success",
             "message": f"Successfully processed {request.input_pdf}",
