@@ -10,6 +10,7 @@ MONGO_SERVICE_PORT=8000
 
 # First Time after Git clone
 python -m venv venv
+source venv/Scripts/activate
 pip install -r requirements.txt
 pip install uvicorn
 # after every new library imported
