@@ -150,7 +150,7 @@ def process_folder_remove_headers_footers(input_folder: str, output_folder: Opti
             
             success_msg = f"✅ Successfully processed {file}"
             stats["log_messages"].append(success_msg)
-            
+            print(f"Heaer/Footer Removal processed file # {stats['processedFiles']}")
             stats["processing_details"].append({
                 "file": file,
                 "status": "success"
